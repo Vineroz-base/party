@@ -59,7 +59,7 @@
         const remaining = (timestamp + 15 * 60 * 1000) - Date.now();
 
         if (remaining <= 0) {
-          document.getElementById("message").textContent = "Refresh page to update!";
+          document.getElementById("message").textContent = "";
           return;
         }
 
@@ -69,7 +69,7 @@
         const mm = minutes.toString().padStart(2, '0');
         const ss = seconds.toString().padStart(2, '0');
 
-        document.getElementById("message").textContent = `Refreshes after ${mm}:${ss}...`;
+        document.getElementById("message").textContent = `${mm}:${ss}`;
       }
 
       // Run immediately and update every second
