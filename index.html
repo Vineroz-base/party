@@ -1,25 +1,90 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>QR to Number</title>
+    <title>Random Number</title>
     <style>
       body {
         background-color: #121212;
+        color: #f5f5f5;
         display: flex;
+        flex-direction: column;   /* stack number + message vertically */
         justify-content: center;
         align-items: center;
         height: 100vh;
         margin: 0;
+        font-family: Arial, sans-serif;
       }
-      img {
-        width: 100vw;   /* fill the whole screen width */
-        height: 100vh;  /* fill the whole screen height */
-        object-fit: contain; /* keep proportions */
+      .number {
+        font-size: 36vw;
+      }
+      .message {
+        font-size: 8vw;           /* bigger font, scales with screen width */
+        font-style: italic;
+        font-weight: bold;
+        margin-top: 20px;
+        color: #ffcc00;
+        text-align: center;
+      }
+      .button {
+        margin-top: 30px;
+        padding: 15px 30px;
+        font-size: 6vw;
+        font-weight: bold;
+        color: #121212;
+        background-color: #ffcc00;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+      .button:hover {
+        background-color: #ffaa00;
       }
     </style>
   </head>
   <body>
-    <!-- QR code generated from an online service -->
-    <img src="https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=https://vineroz-base.github.io/party/number.html" alt="QR Code to Number Page">
+    <div class="number" id="number"></div>
+    <div class="message" id="message"></div>
+    <button class="button" onclick="window.location.href='card.html'">Go to Card Draw</button>
+
+    <script>
+      // Check if we already have a stored number and timestamp
+      const storedNumber = localStorage.getItem("randomNumber");
+      const storedTime = localStorage.getItem("randomNumberTime");
+      const now = Date.now();
+
+      let number, timestamp;
+
+      if (storedNumber && storedTime && (now - storedTime < 15 * 60 * 1000)) {
+        number = storedNumber;
+        timestamp = parseInt(storedTime);
+      } else {
+        number = Math.floor(Math.random() * 100) + 1;
+        timestamp = now;
+        localStorage.setItem("randomNumber", number);
+        localStorage.setItem("randomNumberTime", timestamp);
+      }
+
+      document.getElementById("number").textContent = number;
+
+      function updateCountdown() {
+        const remaining = (timestamp + 15 * 60 * 1000) - Date.now();
+
+        if (remaining <= 0) {
+          document.getElementById("message").textContent = "Refresh page to update!";
+          return;
+        }
+
+        const minutes = Math.floor(remaining / 60000);
+        const seconds = Math.floor((remaining % 60000) / 1000);
+
+        const mm = minutes.toString().padStart(2, '0');
+        const ss = seconds.toString().padStart(2, '0');
+
+        document.getElementById("message").textContent = `Refreshes after ${mm}:${ss}...`;
+      }
+
+      updateCountdown();
+      setInterval(updateCountdown, 1000);
+    </script>
   </body>
 </html>
