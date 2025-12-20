@@ -18,9 +18,12 @@
         font-size: 36vw;
       }
       .message {
-        font-size: 10vw;
+        font-size: 8vw;           /* bigger font, scales with screen width */
         font-style: italic;
-        margin-top: 10px;
+        font-weight: bold;        /* make it stand out */
+        margin-top: 20px;
+        color: #ffcc00;           /* bright yellow for visibility */
+        text-align: center;
       }
     </style>
   </head>
@@ -56,22 +59,4 @@
         const remaining = (timestamp + 15 * 60 * 1000) - Date.now();
 
         if (remaining <= 0) {
-          document.getElementById("message").textContent = "Refresh page to update!";
-          return;
-        }
-
-        const minutes = Math.floor(remaining / 60000);
-        const seconds = Math.floor((remaining % 60000) / 1000);
-
-        const mm = minutes.toString().padStart(2, '0');
-        const ss = seconds.toString().padStart(2, '0');
-
-        document.getElementById("message").textContent = `Refreshes after ${mm}:${ss}...`;
-      }
-
-      // Update every second
-      updateCountdown();
-      setInterval(updateCountdown, 1000);
-    </script>
-  </body>
-</html>
+         
