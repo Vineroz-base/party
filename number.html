@@ -20,16 +20,31 @@
       .message {
         font-size: 8vw;           /* bigger font, scales with screen width */
         font-style: italic;
-        font-weight: bold;        /* make it stand out */
+        font-weight: bold;
         margin-top: 20px;
-        color: #ffcc00;           /* bright yellow for visibility */
+        color: #ffcc00;
         text-align: center;
+      }
+      .button {
+        margin-top: 30px;
+        padding: 15px 30px;
+        font-size: 6vw;
+        font-weight: bold;
+        color: #121212;
+        background-color: #ffcc00;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+      .button:hover {
+        background-color: #ffaa00;
       }
     </style>
   </head>
   <body>
     <div class="number" id="number"></div>
     <div class="message" id="message"></div>
+    <button class="button" onclick="window.location.href='card.html'">Go to Card Draw</button>
 
     <script>
       // Check if we already have a stored number and timestamp
@@ -40,26 +55,22 @@
       let number, timestamp;
 
       if (storedNumber && storedTime && (now - storedTime < 15 * 60 * 1000)) {
-        // If less than 15 minutes old, reuse the stored number
         number = storedNumber;
         timestamp = parseInt(storedTime);
       } else {
-        // Otherwise, generate a new one and store it
         number = Math.floor(Math.random() * 100) + 1;
         timestamp = now;
         localStorage.setItem("randomNumber", number);
         localStorage.setItem("randomNumberTime", timestamp);
       }
 
-      // Show the number
       document.getElementById("number").textContent = number;
 
-      // Countdown function
       function updateCountdown() {
         const remaining = (timestamp + 15 * 60 * 1000) - Date.now();
 
         if (remaining <= 0) {
-          document.getElementById("message").textContent = "";
+          document.getElementById("message").textContent = "Refresh page to update!";
           return;
         }
 
@@ -69,10 +80,9 @@
         const mm = minutes.toString().padStart(2, '0');
         const ss = seconds.toString().padStart(2, '0');
 
-        document.getElementById("message").textContent = `${mm}:${ss}`;
+        document.getElementById("message").textContent = `Refreshes after ${mm}:${ss}...`;
       }
 
-      // Run immediately and update every second
       updateCountdown();
       setInterval(updateCountdown, 1000);
     </script>
