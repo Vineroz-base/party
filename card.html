@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Random Card</title>
+    <style>
+      body {
+        background-color: #121212;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+      }
+      img {
+        width: 60vw;
+        max-width: 300px;
+        height: auto;
+        border-radius: 12px;
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      // Deck of Cards API codes
+      const ranks = ["A","2","3","4","5","6","7","8","9","0","J","Q","K"]; // 0 = 10
+      const suits = ["S","H","D","C"]; // Spades, Hearts, Diamonds, Clubs
+
+      const rank = ranks[Math.floor(Math.random() * ranks.length)];
+      const suit = suits[Math.floor(Math.random() * suits.length)];
+
+      const filename = `https://deckofcardsapi.com/static/img/${rank}${suit}.png`;
+
+      document.write(`<img src="${filename}" alt="Random Card">`);
+    </script>
+  </body>
+</html>
