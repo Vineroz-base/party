@@ -51,8 +51,6 @@
       const STORAGE_KEY_NUM = "randomNumber";
       const STORAGE_KEY_TIME = "randomNumberTime";
       const DURATION = 30 * 60 * 1000; // 30 minutes
-      const SHEET_ID = "12o5s8jnBuk-Phw17DEoMGPsXMOY1v65cmdkYasS9g9U"; // your sheet ID
-      const API_KEY = "AIzaSyDJuS2F8KArnLa7Fd66h4mx7hesbuJNZyU"; // replace with your Google Cloud API key
 
       const now = Date.now();
       let number, timestamp;
@@ -69,7 +67,7 @@
         localStorage.setItem(STORAGE_KEY_NUM, number);
         localStorage.setItem(STORAGE_KEY_TIME, timestamp);
 
-        // 🔗 Send result to Google Sheets
+        // 🔗 Send result to Google Apps Script Web App
         sendResult(number, timestamp);
       }
 
@@ -90,25 +88,25 @@
         const mm = minutes.toString().padStart(2, "0");
         const ss = seconds.toString().padStart(2, "0");
 
-        document.getElementById("message").textContent = `${mm}:${ss}`;
+        document.getElementById("message").textContent = `Time left: ${mm}:${ss}`;
       }
 
       updateCountdown();
       setInterval(updateCountdown, 1000);
 
       // ✅ Implementation of sendResult
-function sendResult(num, time) {
-  fetch("https://script.google.com/macros/s/AKfycbxO7tVcL_siriaET8YjQofV75viOm-67u9Y04T2QFbtx1o3nApoLIVglOJ-p5xLBYf8pw/exec", {
-    method: "POST",
-    body: JSON.stringify({
-      number: num,
-      timestamp: new Date(time).toISOString()
-    })
-  })
-  .then(res => res.text())
-  .then(msg => console.log("Saved:", msg))
-  .catch(err => console.error("Error:", err));
-}
+      function sendResult(num, time) {
+        fetch("https://script.google.com/macros/s/AKfycbxO7tVcL_siriaET8YjQofV75viOm-67u9Y04T2QFbtx1o3nApoLIVglOJ-p5xLBYf8pw/exec", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            number: num,
+            timestamp: new Date(time).toISOString()
+          })
+        })
+        .then(res => res.text())
+        .then(msg => console.log("Saved:", msg))
+        .catch(err => console.error("Error:", err));
       }
     </script>
   </body>
