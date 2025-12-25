@@ -53,7 +53,7 @@
 
       let number, timestamp;
 
-      if (storedNumber && storedTime && (now - storedTime < 15 * 60 * 1000)) {
+      if (storedNumber && storedTime && (now - storedTime < 30 * 60 * 1000)) {
         number = storedNumber;
         timestamp = parseInt(storedTime);
       } else {
@@ -66,7 +66,7 @@
       document.getElementById("number").textContent = number;
 
       function updateCountdown() {
-        const remaining = (timestamp + 15 * 60 * 1000) - Date.now();
+        const remaining = (timestamp + 30 * 60 * 1000) - Date.now();
 
         if (remaining <= 0) {
           document.getElementById("message").textContent = ""; // hide countdown
