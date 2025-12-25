@@ -18,7 +18,7 @@
         font-size: 36vw;
       }
       .message {
-        font-size: 4vw;       /* smaller countdown text */
+        font-size: 4vw;
         font-style: italic;
         margin-top: 10px;
         color: #ffcc00;
@@ -43,47 +43,75 @@
   <body>
     <div class="number" id="number"></div>
     <div class="message" id="message"></div>
-    <button class="button" onclick="window.location.href='card.html'">Go to Card Draw</button>
+    <button class="button" onclick="window.location.href='card.html'">
+      Go to Card Draw
+    </button>
 
     <script>
-      // Check if we already have a stored number and timestamp
-      const storedNumber = localStorage.getItem("randomNumber");
-      const storedTime = localStorage.getItem("randomNumberTime");
-      const now = Date.now();
+      const STORAGE_KEY_NUM = "randomNumber";
+      const STORAGE_KEY_TIME = "randomNumberTime";
+      const DURATION = 30 * 60 * 1000; // 30 minutes
+      const SHEET_ID = "12o5s8jnBuk-Phw17DEoMGPsXMOY1v65cmdkYasS9g9U"; // your sheet ID
+      const API_KEY = "AIzaSyDJuS2F8KArnLa7Fd66h4mx7hesbuJNZyU"; // replace with your Google Cloud API key
 
+      const now = Date.now();
       let number, timestamp;
 
-      if (storedNumber && storedTime && (now - storedTime < 30 * 60 * 1000)) {
-        number = storedNumber;
-        timestamp = parseInt(storedTime);
+      const storedNumber = localStorage.getItem(STORAGE_KEY_NUM);
+      const storedTime = localStorage.getItem(STORAGE_KEY_TIME);
+
+      if (storedNumber && storedTime && (now - storedTime < DURATION)) {
+        number = parseInt(storedNumber, 10);
+        timestamp = parseInt(storedTime, 10);
       } else {
         number = Math.floor(Math.random() * 100) + 1;
         timestamp = now;
-        localStorage.setItem("randomNumber", number);
-        localStorage.setItem("randomNumberTime", timestamp);
+        localStorage.setItem(STORAGE_KEY_NUM, number);
+        localStorage.setItem(STORAGE_KEY_TIME, timestamp);
+
+        // 🔗 Send result to Google Sheets
+        sendResult(number, timestamp);
       }
 
       document.getElementById("number").textContent = number;
 
       function updateCountdown() {
-        const remaining = (timestamp + 30 * 60 * 1000) - Date.now();
+        const remaining = (timestamp + DURATION) - Date.now();
 
         if (remaining <= 0) {
-          document.getElementById("message").textContent = ""; // hide countdown
+          document.getElementById("message").textContent =
+            "Expired — refresh for a new number!";
           return;
         }
 
         const minutes = Math.floor(remaining / 60000);
         const seconds = Math.floor((remaining % 60000) / 1000);
 
-        const mm = minutes.toString().padStart(2, '0');
-        const ss = seconds.toString().padStart(2, '0');
+        const mm = minutes.toString().padStart(2, "0");
+        const ss = seconds.toString().padStart(2, "0");
 
-        document.getElementById("message").textContent = `${mm}:${ss}`;
+        document.getElementById("message").textContent = `Time left: ${mm}:${ss}`;
       }
 
       updateCountdown();
       setInterval(updateCountdown, 1000);
+
+      // ✅ Implementation of sendResult
+      function sendResult(num, time) {
+        fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Sheet1!A:B:append?valueInputOption=RAW&key=${API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              values: [[num, new Date(time).toISOString()]]
+            })
+          }
+        )
+          .then(res => res.json())
+          .then(data => console.log("Saved to Google Sheets:", data))
+          .catch(err => console.error("Error saving:", err));
+      }
     </script>
   </body>
 </html>
