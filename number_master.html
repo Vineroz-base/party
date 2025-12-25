@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Number Master</title>
+    <style>
+      body {
+        background-color: #121212;
+        color: #f5f5f5;
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+      }
+      h1 {
+        text-align: center;
+        color: #ffcc00;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      th, td {
+        border: 1px solid #f5f5f5;
+        padding: 10px;
+        text-align: center;
+      }
+      th {
+        background-color: #ffcc00;
+        color: #121212;
+      }
+      tr:nth-child(even) {
+        background-color: #1e1e1e;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>All Guest Numbers</h1>
+    <table id="resultsTable">
+      <thead>
+        <tr>
+          <th>Number</th>
+          <th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <script>
+      const SHEET_ID = "12o5s8jnBuk-Phw17DEoMGPsXMOY1v65cmdkYasS9g9U"; // your sheet ID
+      const API_KEY = "YOUR_API_KEY"; // replace with your Google Cloud API key
+
+      // Fetch all values from Sheet1, columns A and B
+      fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Sheet1!A:B?key=${API_KEY}`)
+        .then(res => res.json())
+        .then(data => {
+          const rows = data.values || [];
+          const tbody = document.querySelector("#resultsTable tbody");
+
+          // Skip header row if present
+          rows.forEach((row, index) => {
+            const tr = document.createElement("tr");
+
+            const tdNumber = document.createElement("td");
+            tdNumber.textContent = row[0] || "";
+            tr.appendChild(tdNumber);
+
+            const tdTime = document.createElement("td");
+            tdTime.textContent = row[1] || "";
+            tr.appendChild(tdTime);
+
+            tbody.appendChild(tr);
+          });
+        })
+        .catch(err => {
+          console.error("Error fetching data:", err);
+          const tbody = document.querySelector("#resultsTable tbody");
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 2;
+          td.textContent = "Failed to load data.";
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+        });
+    </script>
+  </body>
+</html>
