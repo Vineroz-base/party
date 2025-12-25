@@ -97,20 +97,18 @@
       setInterval(updateCountdown, 1000);
 
       // ✅ Implementation of sendResult
-      function sendResult(num, time) {
-        fetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Sheet1!A:B:append?valueInputOption=RAW&key=${API_KEY}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              values: [[num, new Date(time).toISOString()]]
-            })
-          }
-        )
-          .then(res => res.json())
-          .then(data => console.log("Saved to Google Sheets:", data))
-          .catch(err => console.error("Error saving:", err));
+function sendResult(num, time) {
+  fetch("https://script.google.com/macros/s/AKfycbxO7tVcL_siriaET8YjQofV75viOm-67u9Y04T2QFbtx1o3nApoLIVglOJ-p5xLBYf8pw/exec", {
+    method: "POST",
+    body: JSON.stringify({
+      number: num,
+      timestamp: new Date(time).toISOString()
+    })
+  })
+  .then(res => res.text())
+  .then(msg => console.log("Saved:", msg))
+  .catch(err => console.error("Error:", err));
+}
       }
     </script>
   </body>
