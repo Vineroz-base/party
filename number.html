@@ -47,7 +47,26 @@
       Go to Card Draw
     </button>
 
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+
     <script>
+      // Your Firebase config
+      const firebaseConfig = {
+        apiKey: "AIzaSyBmj-_hMVfz70jZU67Ugd1aRZodckJUj6A",
+        authDomain: "github-party.firebaseapp.com",
+        projectId: "github-party",
+        storageBucket: "github-party.firebasestorage.app",
+        messagingSenderId: "301660898316",
+        appId: "1:301660898316:web:e00213dcb75fb991239a29",
+        measurementId: "G-VYW87HHBK5"
+      };
+
+      // Initialize Firebase
+      const app = firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+
       const STORAGE_KEY_NUM = "randomNumber";
       const STORAGE_KEY_TIME = "randomNumberTime";
       const DURATION = 30 * 60 * 1000; // 30 minutes
@@ -67,8 +86,13 @@
         localStorage.setItem(STORAGE_KEY_NUM, number);
         localStorage.setItem(STORAGE_KEY_TIME, timestamp);
 
-        // 🔗 Send result to Google Apps Script Web App
-        sendResult(number, timestamp);
+        // ✅ Save result to Firestore
+        db.collection("results").add({
+          number: number,
+          timestamp: new Date(timestamp).toISOString()
+        })
+        .then(() => console.log("Saved to Firestore"))
+        .catch(err => console.error("Error:", err));
       }
 
       document.getElementById("number").textContent = number;
@@ -78,7 +102,7 @@
 
         if (remaining <= 0) {
           document.getElementById("message").textContent =
-            "Expired — refresh for a new number!";
+            "";
           return;
         }
 
@@ -93,21 +117,6 @@
 
       updateCountdown();
       setInterval(updateCountdown, 1000);
-
-      // ✅ Implementation of sendResult
-      function sendResult(num, time) {
-        fetch("https://script.google.com/macros/s/AKfycbxO7tVcL_siriaET8YjQofV75viOm-67u9Y04T2QFbtx1o3nApoLIVglOJ-p5xLBYf8pw/exec", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            number: num,
-            timestamp: new Date(time).toISOString()
-          })
-        })
-        .then(res => res.text())
-        .then(msg => console.log("Saved:", msg))
-        .catch(err => console.error("Error:", err));
-      }
     </script>
   </body>
 </html>
