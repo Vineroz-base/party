@@ -153,7 +153,7 @@
           .catch(err => console.error("Error deleting:", err));
       }
 
-      // Clear all records + broadcast reset
+      // Clear all records + broadcast reset timestamp
       function clearAll() {
         db.collection("results").get()
           .then(snapshot => {
@@ -163,9 +163,10 @@
           })
           .then(() => {
             console.log("Cleared all records");
-            // Broadcast reset flag
-            db.collection("control").doc("resetFlag").set({ reset: true })
-              .then(() => console.log("Reset flag set"))
+            // Broadcast reset timestamp
+            const ts = Date.now();
+            db.collection("control").doc("resetFlag").set({ reset: ts })
+              .then(() => console.log("Reset flag set:", ts))
               .catch(err => console.error("Error setting reset flag:", err));
           })
           .catch(err => console.error("Error clearing:", err));
