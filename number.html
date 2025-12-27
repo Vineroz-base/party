@@ -49,7 +49,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
     <script>
-      // Firebase config
       const firebaseConfig = {
         apiKey: "AIzaSyBmj-_hMVfz70jZU67Ugd1aRZodckJUj6A",
         authDomain: "github-party.firebaseapp.com",
@@ -65,7 +64,8 @@
 
       const STORAGE_KEY_NUM = "randomNumber";
       const STORAGE_KEY_TIME = "randomNumberTime";
-      const STORAGE_KEY_DOC = "randomNumberDoc"; // store Firestore doc ID
+      const STORAGE_KEY_DOC = "randomNumberDoc";
+      const STORAGE_KEY_RESET = "lastResetSeen"; // track last reset timestamp
       const DURATION = 30 * 60 * 1000; // 30 minutes
 
       const now = Date.now();
@@ -100,7 +100,6 @@
         .catch(err => console.error("Error:", err));
       }
 
-      // Show number
       document.getElementById("number").textContent = number;
 
       function updateCountdown() {
@@ -119,7 +118,6 @@
       updateCountdown();
       setInterval(updateCountdown, 1000);
 
-      // Listener for own document
       function attachDocListener(docRef) {
         docRef.onSnapshot(snapshot => {
           if (!snapshot.exists) {
@@ -129,18 +127,19 @@
         });
       }
 
-      // Listener for global reset flag
+      // ✅ Listen for global reset timestamp
       db.collection("control").doc("resetFlag").onSnapshot(snapshot => {
         if (snapshot.exists) {
           const data = snapshot.data();
-          if (data.reset === true) {
-            console.log("Global reset triggered, clearing...");
+          const lastResetSeen = parseInt(localStorage.getItem(STORAGE_KEY_RESET) || "0", 10);
+          if (data.reset && data.reset > lastResetSeen) {
+            console.log("Global reset triggered:", data.reset);
+            localStorage.setItem(STORAGE_KEY_RESET, data.reset);
             resetLocal();
           }
         }
       });
 
-      // Clear local storage and reload
       function resetLocal() {
         localStorage.removeItem(STORAGE_KEY_NUM);
         localStorage.removeItem(STORAGE_KEY_TIME);
