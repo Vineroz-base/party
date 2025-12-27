@@ -110,55 +110,46 @@
       const db = firebase.firestore();
       const tbody = document.querySelector("#resultsTable tbody");
 
-      // Load results
-      function loadResults() {
+      // Render table rows
+      function renderResults(snapshot) {
         tbody.innerHTML = "";
-        db.collection("results").orderBy("timestamp", "desc").get()
-          .then(snapshot => {
-            snapshot.forEach(doc => {
-              const data = doc.data();
-              const tr = document.createElement("tr");
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const tr = document.createElement("tr");
 
-              const tdNumber = document.createElement("td");
-              tdNumber.textContent = data.number;
-              tdNumber.setAttribute("data-label", "Number");
-              tr.appendChild(tdNumber);
+          const tdNumber = document.createElement("td");
+          tdNumber.textContent = data.number;
+          tdNumber.setAttribute("data-label", "Number");
+          tr.appendChild(tdNumber);
 
-              const tdTime = document.createElement("td");
-              tdTime.textContent = data.timestamp;
-              tdTime.setAttribute("data-label", "Timestamp");
-              tr.appendChild(tdTime);
+          const tdTime = document.createElement("td");
+          tdTime.textContent = data.timestamp;
+          tdTime.setAttribute("data-label", "Timestamp");
+          tr.appendChild(tdTime);
 
-              const tdAction = document.createElement("td");
-              tdAction.setAttribute("data-label", "Action");
-              const delBtn = document.createElement("button");
-              delBtn.textContent = "Delete";
-              delBtn.className = "btn";
-              delBtn.onclick = () => deleteResult(doc.id);
-              tdAction.appendChild(delBtn);
-              tr.appendChild(tdAction);
+          const tdAction = document.createElement("td");
+          tdAction.setAttribute("data-label", "Action");
+          const delBtn = document.createElement("button");
+          delBtn.textContent = "Delete";
+          delBtn.className = "btn";
+          delBtn.onclick = () => deleteResult(doc.id);
+          tdAction.appendChild(delBtn);
+          tr.appendChild(tdAction);
 
-              tbody.appendChild(tr);
-            });
-          })
-          .catch(err => {
-            console.error("Error fetching data:", err);
-            const tr = document.createElement("tr");
-            const td = document.createElement("td");
-            td.colSpan = 3;
-            td.textContent = "Failed to load data.";
-            tr.appendChild(td);
-            tbody.appendChild(tr);
-          });
+          tbody.appendChild(tr);
+        });
       }
+
+      // Realtime listener
+      db.collection("results").orderBy("timestamp", "desc")
+        .onSnapshot(snapshot => {
+          renderResults(snapshot);
+        });
 
       // Delete single record
       function deleteResult(id) {
         db.collection("results").doc(id).delete()
-          .then(() => {
-            console.log("Deleted record:", id);
-            loadResults(); // refresh table
-          })
+          .then(() => console.log("Deleted record:", id))
           .catch(err => console.error("Error deleting:", err));
       }
 
@@ -170,15 +161,9 @@
             snapshot.forEach(doc => batch.delete(doc.ref));
             return batch.commit();
           })
-          .then(() => {
-            console.log("Cleared all records");
-            loadResults();
-          })
+          .then(() => console.log("Cleared all records"))
           .catch(err => console.error("Error clearing:", err));
       }
-
-      // Initial load
-      loadResults();
     </script>
   </body>
 </html>
