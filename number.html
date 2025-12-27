@@ -44,7 +44,7 @@
       Go to Card Draw
     </button>
 
-    <!-- ✅ Use compat SDKs -->
+    <!-- Firebase compat SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
@@ -60,7 +60,6 @@
         measurementId: "G-VYW87HHBK5"
       };
 
-      // Initialize Firebase (compat style)
       firebase.initializeApp(firebaseConfig);
       const db = firebase.firestore();
 
@@ -83,16 +82,16 @@
         localStorage.setItem(STORAGE_KEY_NUM, number);
         localStorage.setItem(STORAGE_KEY_TIME, timestamp);
 
-        // ✅ Save result to Firestore
+        // Save result to Firestore
         db.collection("results").add({
           number: number,
           timestamp: new Date(timestamp).toISOString()
         })
-        .then(() => console.log("Saved to Firestore:", number))
-        .catch(err => console.error("Firestore error:", err));
+        .then(() => console.log("Saved:", number))
+        .catch(err => console.error("Error:", err));
       }
 
-      // ✅ Always show number
+      // Show number
       document.getElementById("number").textContent = number;
 
       function updateCountdown() {
