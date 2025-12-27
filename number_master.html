@@ -110,6 +110,25 @@
       const db = firebase.firestore();
       const tbody = document.querySelector("#resultsTable tbody");
 
+      // Format timestamp in yyyy-MM-dd hh:mm:ss GMT+8
+      function formatTimestampGMT8(isoString) {
+        const date = new Date(isoString);
+        const options = {
+          timeZone: "Asia/Hong_Kong",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false
+        };
+        const parts = new Intl.DateTimeFormat("en-GB", options).formatToParts(date);
+        const lookup = {};
+        parts.forEach(p => lookup[p.type] = p.value);
+        return `${lookup.year}-${lookup.month}-${lookup.day} ${lookup.hour}:${lookup.minute}:${lookup.second}`;
+      }
+
       // Render table rows
       function renderResults(snapshot) {
         tbody.innerHTML = "";
@@ -123,7 +142,7 @@
           tr.appendChild(tdNumber);
 
           const tdTime = document.createElement("td");
-          tdTime.textContent = data.timestamp;
+          tdTime.textContent = formatTimestampGMT8(data.timestamp);
           tdTime.setAttribute("data-label", "Timestamp");
           tr.appendChild(tdTime);
 
@@ -153,7 +172,7 @@
           .catch(err => console.error("Error deleting:", err));
       }
 
-      // Clear all records + broadcast reset timestamp
+      // Clear all records + broadcast reset timestamp (numeric for guests)
       function clearAll() {
         db.collection("results").get()
           .then(snapshot => {
@@ -163,7 +182,6 @@
           })
           .then(() => {
             console.log("Cleared all records");
-            // Broadcast reset timestamp
             const ts = Date.now();
             db.collection("control").doc("resetFlag").set({ reset: ts })
               .then(() => console.log("Reset flag set:", ts))
