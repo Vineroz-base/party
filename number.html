@@ -80,7 +80,7 @@
         timestamp = parseInt(storedTime, 10);
         if (storedDoc) {
           docRef = db.collection("results").doc(storedDoc);
-          attachListener(docRef);
+          attachDocListener(docRef);
         }
       } else {
         number = Math.floor(Math.random() * 100) + 1;
@@ -94,7 +94,7 @@
           localStorage.setItem(STORAGE_KEY_TIME, timestamp);
           localStorage.setItem(STORAGE_KEY_DOC, doc.id);
           docRef = doc;
-          attachListener(docRef);
+          attachDocListener(docRef);
           console.log("Saved:", number);
         })
         .catch(err => console.error("Error:", err));
@@ -119,17 +119,33 @@
       updateCountdown();
       setInterval(updateCountdown, 1000);
 
-      // ✅ Listener: if admin deletes this record, clear LocalStorage and reload
-      function attachListener(docRef) {
+      // Listener for own document
+      function attachDocListener(docRef) {
         docRef.onSnapshot(snapshot => {
           if (!snapshot.exists) {
             console.log("Record deleted by admin, resetting...");
-            localStorage.removeItem(STORAGE_KEY_NUM);
-            localStorage.removeItem(STORAGE_KEY_TIME);
-            localStorage.removeItem(STORAGE_KEY_DOC);
-            location.reload(); // reload to generate a new number
+            resetLocal();
           }
         });
+      }
+
+      // Listener for global reset flag
+      db.collection("control").doc("resetFlag").onSnapshot(snapshot => {
+        if (snapshot.exists) {
+          const data = snapshot.data();
+          if (data.reset === true) {
+            console.log("Global reset triggered, clearing...");
+            resetLocal();
+          }
+        }
+      });
+
+      // Clear local storage and reload
+      function resetLocal() {
+        localStorage.removeItem(STORAGE_KEY_NUM);
+        localStorage.removeItem(STORAGE_KEY_TIME);
+        localStorage.removeItem(STORAGE_KEY_DOC);
+        location.reload();
       }
     </script>
   </body>
