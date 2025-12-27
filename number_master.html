@@ -81,9 +81,9 @@
       </table>
     </div>
 
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+    <!-- ✅ Use compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
     <script>
       // Firebase config
@@ -97,11 +97,13 @@
         measurementId: "G-VYW87HHBK5"
       };
 
-      const app = firebase.initializeApp(firebaseConfig);
+      // Initialize Firebase (compat style)
+      firebase.initializeApp(firebaseConfig);
       const db = firebase.firestore();
 
       const tbody = document.querySelector("#resultsTable tbody");
 
+      // ✅ Fetch results from Firestore
       db.collection("results").orderBy("timestamp", "desc").get()
         .then(snapshot => {
           snapshot.forEach(doc => {
