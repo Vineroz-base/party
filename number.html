@@ -65,29 +65,38 @@
 
       const STORAGE_KEY_NUM = "randomNumber";
       const STORAGE_KEY_TIME = "randomNumberTime";
+      const STORAGE_KEY_DOC = "randomNumberDoc"; // store Firestore doc ID
       const DURATION = 30 * 60 * 1000; // 30 minutes
 
       const now = Date.now();
-      let number, timestamp;
+      let number, timestamp, docRef;
 
       const storedNumber = localStorage.getItem(STORAGE_KEY_NUM);
       const storedTime = localStorage.getItem(STORAGE_KEY_TIME);
+      const storedDoc = localStorage.getItem(STORAGE_KEY_DOC);
 
       if (storedNumber && storedTime && (now - storedTime < DURATION)) {
         number = parseInt(storedNumber, 10);
         timestamp = parseInt(storedTime, 10);
+        if (storedDoc) {
+          docRef = db.collection("results").doc(storedDoc);
+          attachListener(docRef);
+        }
       } else {
         number = Math.floor(Math.random() * 100) + 1;
         timestamp = now;
-        localStorage.setItem(STORAGE_KEY_NUM, number);
-        localStorage.setItem(STORAGE_KEY_TIME, timestamp);
-
-        // Save result to Firestore
         db.collection("results").add({
           number: number,
           timestamp: new Date(timestamp).toISOString()
         })
-        .then(() => console.log("Saved:", number))
+        .then(doc => {
+          localStorage.setItem(STORAGE_KEY_NUM, number);
+          localStorage.setItem(STORAGE_KEY_TIME, timestamp);
+          localStorage.setItem(STORAGE_KEY_DOC, doc.id);
+          docRef = doc;
+          attachListener(docRef);
+          console.log("Saved:", number);
+        })
         .catch(err => console.error("Error:", err));
       }
 
@@ -109,6 +118,19 @@
 
       updateCountdown();
       setInterval(updateCountdown, 1000);
+
+      // ✅ Listener: if admin deletes this record, clear LocalStorage and reload
+      function attachListener(docRef) {
+        docRef.onSnapshot(snapshot => {
+          if (!snapshot.exists) {
+            console.log("Record deleted by admin, resetting...");
+            localStorage.removeItem(STORAGE_KEY_NUM);
+            localStorage.removeItem(STORAGE_KEY_TIME);
+            localStorage.removeItem(STORAGE_KEY_DOC);
+            location.reload(); // reload to generate a new number
+          }
+        });
+      }
     </script>
   </body>
 </html>
