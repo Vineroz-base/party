@@ -15,9 +15,7 @@
         margin: 0;
         font-family: Arial, sans-serif;
       }
-      .number {
-        font-size: 36vw;
-      }
+      .number { font-size: 36vw; }
       .message {
         font-size: 4vw;
         font-style: italic;
@@ -36,9 +34,7 @@
         border-radius: 10px;
         cursor: pointer;
       }
-      .button:hover {
-        background-color: #ffaa00;
-      }
+      .button:hover { background-color: #ffaa00; }
     </style>
   </head>
   <body>
@@ -48,9 +44,9 @@
       Go to Card Draw
     </button>
 
-    <!-- Firebase SDKs (namespaced style) -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+    <!-- ✅ Use compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
     <script>
       // Firebase config
@@ -64,7 +60,7 @@
         measurementId: "G-VYW87HHBK5"
       };
 
-      // Initialize Firebase (namespaced style)
+      // Initialize Firebase (compat style)
       firebase.initializeApp(firebaseConfig);
       const db = firebase.firestore();
 
@@ -87,7 +83,7 @@
         localStorage.setItem(STORAGE_KEY_NUM, number);
         localStorage.setItem(STORAGE_KEY_TIME, timestamp);
 
-        // Save to Firestore (but DOM update happens regardless)
+        // ✅ Save result to Firestore
         db.collection("results").add({
           number: number,
           timestamp: new Date(timestamp).toISOString()
@@ -96,25 +92,20 @@
         .catch(err => console.error("Firestore error:", err));
       }
 
-      // ✅ Always show number immediately
+      // ✅ Always show number
       document.getElementById("number").textContent = number;
 
       function updateCountdown() {
         const remaining = (timestamp + DURATION) - Date.now();
-
         if (remaining <= 0) {
           document.getElementById("message").textContent =
             "Expired — refresh for a new number!";
           return;
         }
-
         const minutes = Math.floor(remaining / 60000);
         const seconds = Math.floor((remaining % 60000) / 1000);
-
-        const mm = minutes.toString().padStart(2, "0");
-        const ss = seconds.toString().padStart(2, "0");
-
-        document.getElementById("message").textContent = `${mm}:${ss}`;
+        document.getElementById("message").textContent =
+          `${minutes.toString().padStart(2,"0")}:${seconds.toString().padStart(2,"0")}`;
       }
 
       updateCountdown();
