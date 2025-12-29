@@ -93,7 +93,6 @@
     <h3>Numbers drawn</h3>
     <div id="calledList" class="called"></div>
   </div>
-
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js"></script>
@@ -102,7 +101,15 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
   <script>
-    const firebaseConfig = { /* your config */ };
+    const firebaseConfig = {
+      apiKey: "AIzaSyBmj-_hMVfz70jZU67Ugd1aRZodckJUj6A",
+      authDomain: "github-party.firebaseapp.com",
+      projectId: "github-party",
+      storageBucket: "github-party.firebasestorage.app",
+      messagingSenderId: "301660898316",
+      appId: "1:301660898316:web:ad9166ac91610d16239a29",
+      measurementId: "G-Q7RBDS0HVF"
+    };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
@@ -117,11 +124,9 @@
     }
     function makeHighlightMask(grid,set){return grid.map(row=>row.map(n=>set.has(n)));}
 
-    // Extended evaluateCard: returns winning cells
     function evaluateCard(grid,set){
       const mask=makeHighlightMask(grid,set);
-      const lines=[];
-      const coords=[];
+      const lines=[],coords=[];
       for(let r=0;r<5;r++){lines.push(mask[r]); coords.push([[r,0],[r,1],[r,2],[r,3],[r,4]]);}
       for(let c=0;c<5;c++){lines.push(mask.map(row=>row[c])); coords.push([[0,c],[1,c],[2,c],[3,c],[4,c]]);}
       lines.push([0,1,2,3,4].map(i=>mask[i][i])); coords.push([[0,0],[1,1],[2,2],[3,3],[4,4]]);
@@ -154,11 +159,98 @@
 
     auth.signInAnonymously().catch(console.error);
     const urlParams=new URLSearchParams(window.location.search);
-    const gameIdFromUrl=urlParams.get("game");
-    let gameId=null;
-    if(gameIdFromUrl){ gameId=gameIdFromUrl; }
+    const gameId=urlParams.get("game");
 
-    // ... (same join/play logic as before, omitted for brevity)
+    if(gameId){
+      db.collection('bingo_games').doc(gameId).onSnapshot(doc=>{
+        if(!doc.exists){waitEl.textContent="Game not found.";show(waitEl);hide(joinEl);hide(playEl);return;}
+        const data=doc.data(); maxNumber=data.maxNumber||75;
+        if(data.status==="waiting"||data.status==="active"){
+          const storedCardId=localStorage.getItem("cardId");
+          const storedGameId=localStorage.getItem("gameId");
+          if(storedCardId&&storedGameId===gameId){
+            cardDocRef=db.collection('bingo_cards').doc(storedCardId);
+            cardDocRef.get().then(cd=>{
+              if(cd.exists){
+                const arr=cd.data().grid||[]; grid=[]; for(let r=0;r<5;r++){grid.push(arr.slice(r*5,(r+1)*5));}
+                renderPlay();
+              } else {localStorage.clear(); renderJoin();}
+            });
+          } else if(data.status==="waiting"){grid=generateGrid5x5(maxNumber);renderJoin();}
+          else {waitEl.textContent="This game is already started, please wait for a new game.";show(waitEl);hide(joinEl);hide(playEl);}
+        } else {waitEl.textContent="Game finished.";localStorage.clear();show(waitEl);hide(playEl);}
+      });
+    } else {
+      waitEl.textContent="No game selected. Please use the QR link.";
+      show(waitEl); hide(joinEl); hide(playEl);
+    }
+
+    function renderJoin(){
+      hide(waitEl); show(joinEl);
+      renderGridPreview();
+      refreshBtn.onclick=()=>{
+        grid=generateGrid5x5(maxNumber);
+        renderGridPreview();
+      };
+      readyBtn.onclick=async()=>{
+        try {
+          const playerName=nameInput.value.trim();
+          if(!playerName){alert('Please enter your name');return;}
+          if(!gameId){alert('No game selected.');return;}
+          const uid=auth.currentUser?auth.currentUser.uid:'anon';
+          const cardRef=db.collection('bingo_cards').doc();
+          await cardRef.set({
+            cardId:cardRef.id,
+            playerUid:uid,
+            gameId:gameId,
+            playerName,
+            grid:grid.flat(),
+            ready:true,
+            winner:false,
+            createdAt:firebase.firestore.FieldValue.serverTimestamp()
+          });
+          cardDocRef=cardRef;
+          localStorage.setItem("cardId", cardRef.id);
+          localStorage.setItem("gameId", gameId);
+          renderPlay();
+        } catch(err){console.error("Error creating card:",err);}
+      };
+    }
+
+    function renderGridPreview(){
+      gridEl.innerHTML='';
+      grid.forEach(row=>{
+        row.forEach(n=>{
+          const div=document.createElement('div');
+          div.className='cell';
+          div.textContent=n;
+          gridEl.appendChild(div);
+        });
+      });
+    }
+
+    function renderPlay(){
+      hide(waitEl); hide(joinEl); show(playEl);
+      playerNameEl.textContent=nameInput.value.trim()||'Guest';
+
+      db.collection('bingo_games').doc(gameId).onSnapshot(doc=>{
+        const data=doc.data(); if(!data) return;
+        const called=data.calledNumbers||[];
+        const set=new Set(called);
+        const {winningCells}=evaluateCard(grid,set);
+        renderGridPlay(set,winningCells);
+        renderCalledList(called);
+      });
+
+      if(cardDocRef){
+        cardDocRef.onSnapshot(doc=>{
+          const d=doc.data(); if(!d) return;
+          playerNameEl.textContent=d.playerName;
+          const arr=d.grid||[]; grid=[]; for(let r=0;r<5;r++){grid.push(arr.slice(r*5,(r+1)*5));}
+          if(d.winner){triggerWinEffects();} else {hide(winnerBannerEl);gridPlayWrap.classList.remove("glow");}
+        });
+      }
+    }
 
     function renderGridPlay(calledSet,winningCells=[]){
       gridPlayEl.innerHTML='';
@@ -171,68 +263,4 @@
           if(winningCells.some(([wr,wc])=>wr===r&&wc===c)) cls+=' winningCell';
           div.className=cls;
           div.textContent=grid[r][c];
-          gridPlayEl.appendChild(div);
-        }
-      }
-    }
-
-    // When winner detected
-    function triggerWinEffects(){
-      show(winnerBannerEl);
-      gridPlayWrap.classList.add("glow");
-      // Confetti burst
-      confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
-    }
-
-    // Example: inside card snapshot listener
-    if(cardDocRef){
-      cardDocRef.onSnapshot(doc=>{
-        const d = doc.data();
-        if (!d) return;
-        playerNameEl.textContent = d.playerName;
-        // reconstruct grid from flattened array
-        const arr = d.grid || [];
-        grid = [];
-        for(let r=0;r<5;r++){
-          grid.push(arr.slice(r*5,(r+1)*5));
-        }
-
-        // check winner flag
-        if (d.winner) {
-          triggerWinEffects();
-        } else {
-          hide(winnerBannerEl);
-          gridPlayWrap.classList.remove("glow");
-        }
-
-        // also highlight winning line if any
-        db.collection('bingo_games').doc(gameId).get().then(docGame=>{
-          const dataGame = docGame.data();
-          const called = dataGame.calledNumbers || [];
-          const set = new Set(called);
-          const {winningCells} = evaluateCard(grid,set);
-          renderGridPlay(set, winningCells);
-          renderCalledList(called);
-        });
-      });
-    }
-
-    function renderCalledList(called){
-      calledListEl.innerHTML='';
-      called.forEach(n=>{
-        const span=document.createElement('span');
-        span.className='badge';
-        span.textContent=n;
-        calledListEl.appendChild(span);
-      });
-    }
-
-    function show(el){el.classList.remove('hidden');}
-    function hide(el){el.classList.add('hidden');}
-  </script>
-</body>
-</html>
+          gridPlay
