@@ -193,4 +193,117 @@
         status: 'finished',
         endedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      statusTxt.textContent
+      statusTxt.textContent = 'finished';
+      drawBtn.disabled = true;
+      startBtn.disabled = true;
+      finishBtn.disabled = true;
+    };
+
+    function subscribeGame() {
+      if (!gameRef) return;
+      gameRef.onSnapshot(doc => {
+        const data = doc.data();
+        statusTxt.textContent = data.status;
+        maxNumber = data.maxNumber || 75;
+        renderCalled(data.calledNumbers || []);
+        renderProximity();
+      });
+    }
+
+    function subscribeCards() {
+      if (unsubscribeCards) unsubscribeCards();
+      unsubscribeCards = db.collection('bingo_cards')
+        .where('gameId', '==', gameId)
+        .where('ready', '==', true)
+        .onSnapshot(snap => {
+          const players = snap.docs.map(d => d.data());
+          readyCountEl.textContent = players.length.toString();
+          renderPlayers(players);
+          renderProximity(players);
+        });
+    }
+
+    function renderCalled(called) {
+      calledEl.innerHTML = '';
+      called.forEach(n => {
+        const span = document.createElement('span');
+        span.className = 'badge';
+        span.textContent = n;
+        calledEl.appendChild(span);
+      });
+    }
+
+    function renderPlayers(players) {
+      playersEl.innerHTML = '';
+      db.collection('bingo_games').doc(gameId).get().then(doc => {
+        const called = (doc.data().calledNumbers || []);
+        const set = new Set(called);
+        players.forEach(p => {
+          const card = document.createElement('div');
+          card.className = 'card';
+          const title = document.createElement('div');
+          title.textContent = p.playerName;
+          title.style.fontSize = '20px';
+          title.style.fontWeight = '700';
+          card.appendChild(title);
+
+          const gridSm = document.createElement('div');
+          gridSm.className = 'gridSm';
+          const mask = makeHighlightMask(p.grid, set);
+          for (let r=0;r<5;r++){
+            for (let c=0;c<5;c++){
+              const div = document.createElement('div');
+              div.className = 'cell' + (mask[r][c] ? ' hit' : '');
+              div.textContent = p.grid[r][c];
+              gridSm.appendChild(div);
+            }
+          }
+          card.appendChild(gridSm);
+          playersEl.appendChild(card);
+        });
+      });
+    }
+
+    function renderProximity(playersCache = null) {
+      proximityEl.innerHTML = '';
+      (async () => {
+        const gameSnap = await db.collection('bingo_games').doc(gameId).get();
+        const called = gameSnap.data().calledNumbers || [];
+        const set = new Set(called);
+
+        const players = playersCache || (await db.collection('bingo_cards')
+          .where('gameId', '==', gameId)
+          .where('ready', '==', true).get()).docs.map(d=>d.data());
+
+        const proximityBuckets = { '1 away': [], '2 away': [], '3 away': [] };
+        const winners = [];
+
+        players.forEach(p => {
+          const { completed, minAway } = evaluateCard(p.grid, set);
+          if (completed > 0) winners.push(p.playerName);
+          if (minAway <= 3 && completed === 0) {
+            if (minAway === 1) proximityBuckets['1 away'].push(p.playerName);
+            else if (minAway === 2) proximityBuckets['2 away'].push(p.playerName);
+            else if (minAway === 3) proximityBuckets['3 away'].push(p.playerName);
+          }
+        });
+
+        // Winners
+        if (winners.length) {
+          const w = document.createElement('div');
+          w.innerHTML = `<h3>Winners</h3><div>${winners.join(', ')}</div>`;
+          proximityEl.appendChild(w);
+        }
+
+        // Buckets
+        Object.entries(proximityBuckets).forEach(([label, names]) => {
+          const div = document.createElement('div');
+          div.innerHTML = `<h3>${label}</h3><div>${names.join(', ') || '—'}</div>`;
+          proximityEl.appendChild(div);
+        });
+      })();
+    }
+  </script>
+</body>
+</html>
+
