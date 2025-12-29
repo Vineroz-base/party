@@ -12,9 +12,10 @@
     .minor { font-size:24px; margin-top:12px; }
     .bigNumber { font-size:120px; font-weight:900; margin:40px; }
     .proximityList { font-size:20px; max-height:50vh; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; text-align:left; }
-    .smallBtn { position:fixed; bottom:20px; right:20px; font-size:20px; padding:10px 20px; }
+    .smallBtn { font-size:20px; padding:10px 20px; margin-top:20px; }
     .winners { font-size:32px; margin:20px; }
     canvas { margin:20px; }
+    .toolbar { display:flex; gap:20px; justify-content:center; margin-top:20px; }
   </style>
 </head>
 <body>
@@ -99,9 +100,15 @@
         <div class="center">
           <div class="bigNumber">${lastNumber||''}</div>
           <div class="proximityList">${renderProximityBuckets(proximityBuckets)}</div>
-          <button id="finishBtn" class="smallBtn">Finish</button>
+          <div class="toolbar">
+            <button id="drawBtn" class="bigBtn">Draw Number</button>
+            <button id="finishBtn" class="smallBtn">Finish</button>
+          </div>
         </div>`;
-      document.getElementById('finishBtn').onclick=finishGame;
+      document.getElementById('drawBtn').onclick = drawNumber;
+      document.getElementById('finishBtn').onclick = finishGame;
+      // optional keyboard shortcut
+      document.body.onkeyup = (e) => { if (e.code === 'Space') drawNumber(); };
     }
 
     function renderStageFinished(winners){
@@ -175,35 +182,31 @@
           const called=data.calledNumbers||[];
           const lastNumber=called[called.length-1];
           const set=new Set(called);
-          const players=(await db.collection('bingo_cards').where('gameId','==',gameId).where('ready','==',true).get()).docs.map(d=>d.data());
+          const players=(await db.collection('bingo_cards')
+            .where('gameId','==',gameId)
+            .where('ready','==',true).get()).docs.map(d=>d.data());
+
           const buckets={'Winners':[],'1 away':[],'2 away':[],'3 away':[]};
           for(const p of players){
-            const grid2D = reconstructGrid(p.grid);
-            const { completed, minAway } = evaluateCard(grid2D, set);
-
-            if (completed > 0) {
+            const grid2D=reconstructGrid(p.grid);
+            const {completed,minAway}=evaluateCard(grid2D,set);
+            if(completed>0){
               buckets['Winners'].push(p.playerName);
-              // ✅ Update Firestore card doc so guest sees winner banner
-              await db.collection('bingo_cards').doc(p.cardId).update({
-                winner: true
-              });
-            } else if (minAway <= 3) {
-              if (minAway === 1) buckets['1 away'].push(p.playerName);
-              else if (minAway === 2) buckets['2 away'].push(p.playerName);
-              else if (minAway === 3) buckets['3 away'].push(p.playerName);
+              // mark winner in Firestore
+              await db.collection('bingo_cards').doc(p.cardId).update({winner:true});
+            } else if(minAway<=3){
+              if(minAway===1) buckets['1 away'].push(p.playerName);
+              else if(minAway===2) buckets['2 away'].push(p.playerName);
+              else if(minAway===3) buckets['3 away'].push(p.playerName);
             }
           }
+          renderStageActive(lastNumber,buckets);
 
-          renderStageActive(lastNumber, buckets);
-
-          // Allow drawing next number by clicking anywhere or pressing space
-          document.body.onclick = drawNumber;
-          document.body.onkeyup = (e) => { if (e.code === 'Space') drawNumber(); };
-
-        } else if (data.status === 'finished') {
-          const players = (await db.collection('bingo_cards')
-            .where('gameId','==',gameId).where('winner','==',true).get()).docs.map(d=>d.data());
-          const winners = players.map(p=>p.playerName);
+        } else if(data.status==='finished'){
+          const players=(await db.collection('bingo_cards')
+            .where('gameId','==',gameId)
+            .where('winner','==',true).get()).docs.map(d=>d.data());
+          const winners=players.map(p=>p.playerName);
           renderStageFinished(winners);
         } else {
           renderStageIdle();
@@ -217,7 +220,6 @@
         .where('gameId','==',gameId)
         .where('ready','==',true)
         .onSnapshot(snap=>{
-          // we only need count for waiting stage
           const players = snap.docs.map(d=>d.data());
           if(players.length && gameRef){
             gameRef.get().then(doc=>{
