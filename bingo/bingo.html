@@ -127,23 +127,32 @@
         grid=generateGrid5x5(maxNumber);
         renderGridPreview();
       };
-      readyBtn.onclick=async()=>{
-        const playerName=nameInput.value.trim();
-        if(!playerName){alert('Please enter your name');return;}
-        const uid=auth.currentUser?auth.currentUser.uid:'anon';
-        const cardRef=db.collection('bingo_cards').doc();
-        await cardRef.set({
-          cardId:cardRef.id,
-          playerUid:uid,
-          gameId:gameId,   // ✅ link to the game from URL
-          playerName,
-          grid,
-          ready:true,
-          winner:false,
-          createdAt:firebase.firestore.FieldValue.serverTimestamp()
-        });
-        cardDocRef=cardRef;
-        renderPlay();
+      readyBtn.onclick = async () => {
+        try {
+          const playerName = nameInput.value.trim();
+          if (!playerName) { alert('Please enter your name'); return; }
+          if (!gameId) { alert('No game selected. Please use the QR link.'); return; }
+      
+          const uid = auth.currentUser ? auth.currentUser.uid : 'anon';
+          const cardRef = db.collection('bingo_cards').doc();
+      
+          await cardRef.set({
+            cardId: cardRef.id,
+            playerUid: uid,
+            gameId: gameId,   // ✅ must not be null
+            playerName,
+            grid,
+            ready: true,
+            winner: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+      
+          cardDocRef = cardRef;
+          renderPlay();
+        } catch (err) {
+          console.error("Error creating card:", err);
+          alert("Failed to join game. Check console for details.");
+        }
       };
     }
 
