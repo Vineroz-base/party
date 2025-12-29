@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tap Race Guest</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; background: #f0f8ff; }
+    h1 { margin-top: 20px; }
+    #tapBtn {
+      margin-top: 50px;
+      padding: 40px 80px;
+      font-size: 32px;
+      background: #ff5252;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    #tapBtn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    #status { margin-top: 20px; font-size: 18px; }
+  </style>
+</head>
+<body>
+  <h1>Tap Race</h1>
+  <button id="tapBtn" disabled>TAP!</button>
+  <div id="status">Waiting for race to start...</div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getDatabase, ref, update, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBmj-_hMVfz70jZU67Ugd1aRZodckJUj6A",
+      authDomain: "github-party.firebaseapp.com",
+      databaseURL: "https://github-party-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "github-party",
+      storageBucket: "github-party.firebasestorage.app",
+      messagingSenderId: "301660898316",
+      appId: "1:301660898316:web:aee18e9b10d5cf89239a29",
+      measurementId: "G-1E7L3P0M2Q"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    const tapBtn = document.getElementById("tapBtn");
+    const statusEl = document.getElementById("status");
+
+    let uid = null;
+
+    // Sign in anonymously
+    signInAnonymously(auth).catch((error) => {
+      console.error("Auth error:", error);
+    });
+
+    // Once signed in, register player
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        uid = user.uid;
+        const playerRef = ref(db, `tapRace/players/${uid}`);
+        update(playerRef, {
+          name: "Guest",
+          tapCount: 0,
+          lastTap: null
+        });
+
+        // Tap button logic
+        tapBtn.addEventListener("click", () => {
+          update(playerRef, {
+            tapCount: { ".sv": { "increment": 1 } }, // server-side increment
+            lastTap: Date.now()
+          });
+        });
+      }
+    });
+
+    // Listen for race status
+    const raceRef = ref(db, "tapRace/currentRace");
+    onValue(raceRef, (snapshot) => {
+      const race = snapshot.val();
+      if (race && race.raceActive) {
+        tapBtn.disabled = false;
+        statusEl.textContent = "Race is ON! Tap as fast as you can!";
+      } else {
+        tapBtn.disabled = true;
+        statusEl.textContent = "Waiting for race to start...";
+      }
+    });
+  </script>
+</body>
+</html>
