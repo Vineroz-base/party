@@ -87,7 +87,7 @@
     let cardDocRef = null;
     let grid = generateGrid5x5(maxNumber);
 
-    // Sign in anonymously
+    // Sign in anonymously (make sure Anonymous Auth is enabled in Firebase Console)
     auth.signInAnonymously().catch(console.error);
 
     // Get ?game=... from URL
@@ -127,30 +127,27 @@
         grid=generateGrid5x5(maxNumber);
         renderGridPreview();
       };
-      readyBtn.onclick = async () => {
+      readyBtn.onclick=async()=>{
         try {
-          const playerName = nameInput.value.trim();
-          if (!playerName) { alert('Please enter your name'); return; }
-          if (!gameId) { alert('No game selected. Please use the QR link.'); return; }
-      
-          const uid = auth.currentUser ? auth.currentUser.uid : 'anon';
-          const cardRef = db.collection('bingo_cards').doc();
-      
+          const playerName=nameInput.value.trim();
+          if(!playerName){alert('Please enter your name');return;}
+          if(!gameId){alert('No game selected.');return;}
+          const uid=auth.currentUser?auth.currentUser.uid:'anon';
+          const cardRef=db.collection('bingo_cards').doc();
           await cardRef.set({
-            cardId: cardRef.id,
-            playerUid: uid,
-            gameId: gameId,   // ✅ must not be null
+            cardId:cardRef.id,
+            playerUid:uid,
+            gameId:gameId,
             playerName,
-            grid,
-            ready: true,
-            winner: false,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            grid:grid.flat(),   // ✅ flatten 2D array into 1D
+            ready:true,
+            winner:false,
+            createdAt:firebase.firestore.FieldValue.serverTimestamp()
           });
-      
-          cardDocRef = cardRef;
+          cardDocRef=cardRef;
           renderPlay();
-        } catch (err) {
-          console.error("Error creating card:", err);
+        } catch(err){
+          console.error("Error creating card:",err);
           alert("Failed to join game. Check console for details.");
         }
       };
@@ -184,7 +181,12 @@
         cardDocRef.onSnapshot(doc=>{
           const d=doc.data();
           playerNameEl.textContent=d.playerName;
-          grid=d.grid;
+          // reconstruct grid from flattened array
+          const arr=d.grid||[];
+          grid=[];
+          for(let r=0;r<5;r++){
+            grid.push(arr.slice(r*5,(r+1)*5));
+          }
         });
       }
     }
