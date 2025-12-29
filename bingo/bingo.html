@@ -5,21 +5,61 @@
   <title>Bingo Guest</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background:#111; color:#fff; }
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      background:#111;
+      color:#fff;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+      height:100vh;
+      overflow:hidden; /* prevent scrolling */
+    }
+    h1 { margin:12px 0; }
     .hidden { display: none; }
-    .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; max-width: 90vw; margin:auto; }
-    .cell { aspect-ratio: 1 / 1; width: 100%; display:flex; align-items:center; justify-content:center;
-            border: 2px solid #00ffff; border-radius: 8px; font-weight: 700; font-size:20px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+      width: 90vmin;   /* square grid based on smaller viewport dimension */
+      height: 90vmin;
+      margin: auto;
+    }
+    .cell {
+      aspect-ratio: 1 / 1;
+      display:flex; align-items:center; justify-content:center;
+      border: 2px solid #00ffff;
+      border-radius: 6px;
+      font-weight:700;
+      font-size: calc(90vmin / 15); /* scales text relative to grid size */
+    }
     .hit { background:#00ffff; color:#111; font-weight:bold; }
     .toolbar { display: flex; gap: 8px; margin: 12px 0; justify-content:center; }
-    .called { display: flex; flex-wrap: wrap; gap: 6px; justify-content:center; }
-    .badge { padding: 6px 10px; background: #00ffff; color:#111; border-radius: 999px; font-weight:bold; }
-    .winnerBanner { background: gold; color: black; font-size: 24px; font-weight: bold; padding: 12px; text-align: center; border-radius: 8px; margin: 12px 0; }
-    .glow { box-shadow: 0 0 25px #00ffff; border-radius:12px; padding:10px; }
+    .called { display: flex; flex-wrap: wrap; gap: 4px; justify-content:center; max-width:90vw; }
+    .badge {
+      font-size: 14px;
+      padding: 4px 8px;
+      background:#00ffff;
+      color:#111;
+      border-radius:999px;
+      font-weight:bold;
+    }
+    .winnerBanner {
+      font-size: 20px;
+      padding: 8px;
+      margin: 8px;
+      background: gold;
+      color: black;
+      border-radius: 6px;
+      text-align:center;
+    }
+    .glow { box-shadow: 0 0 25px #00ffff; border-radius:12px; padding:6px; }
   </style>
 </head>
 <body>
-  <h1 style="text-align:center;">Bingo</h1>
+  <h1>Bingo</h1>
   <div id="wait">Please wait for a new Bingo game to start</div>
 
   <div id="join" class="hidden">
@@ -38,7 +78,7 @@
     <h2 id="playerName"></h2>
     <div id="winnerBanner" class="winnerBanner hidden">🎉 BINGO! You won! 🎉</div>
     <div id="gridPlayWrap"><div id="gridPlay" class="grid"></div></div>
-    <h3 style="text-align:center;">Numbers drawn</h3>
+    <h3>Numbers drawn</h3>
     <div id="calledList" class="called"></div>
   </div>
 
@@ -91,7 +131,7 @@
 
     let maxNumber = 75;
     let cardDocRef = null;
-    let grid = generateGrid5x5(maxNumber);
+    let grid = null;
 
     // Sign in anonymously
     auth.signInAnonymously().catch(console.error);
@@ -113,18 +153,46 @@
         maxNumber = data.maxNumber || 75;
 
         if (data.status === "waiting") {
-          // Check if card already stored locally
           const storedCardId = localStorage.getItem("cardId");
           const storedGameId = localStorage.getItem("gameId");
           if (storedCardId && storedGameId === gameId) {
             cardDocRef = db.collection('bingo_cards').doc(storedCardId);
-            renderPlay();
+            cardDocRef.get().then(doc => {
+              if (doc.exists) {
+                const d = doc.data();
+                const arr = d.grid || [];
+                grid = [];
+                for (let r=0;r<5;r++){grid.push(arr.slice(r*5,(r+1)*5));}
+                renderPlay();
+              } else {
+                renderJoin();
+              }
+            });
           } else {
+            grid = generateGrid5x5(maxNumber);
             renderJoin();
           }
         } else if (data.status === "active") {
-          waitEl.textContent = "This game is already started, please wait for a new game.";
-          show(waitEl); hide(joinEl); hide(playEl);
+          const storedCardId = localStorage.getItem("cardId");
+          const storedGameId = localStorage.getItem("gameId");
+          if (storedCardId && storedGameId === gameId) {
+            cardDocRef = db.collection('bingo_cards').doc(storedCardId);
+            cardDocRef.get().then(doc => {
+              if (doc.exists) {
+                const d = doc.data();
+                const arr = d.grid || [];
+                grid = [];
+                for (let r=0;r<5;r++){grid.push(arr.slice(r*5,(r+1)*5));}
+                renderPlay();
+              } else {
+                waitEl.textContent = "Card not found. Please wait for a new game.";
+                show(waitEl); hide(joinEl); hide(playEl);
+              }
+            });
+          } else {
+            waitEl.textContent = "This game is already started, please wait for a new game.";
+            show(waitEl); hide(joinEl); hide(playEl);
+          }
         } else {
           waitEl.textContent = "Game finished.";
           localStorage.removeItem("cardId");
@@ -156,7 +224,7 @@
             playerUid:uid,
             gameId:gameId,
             playerName,
-            grid:grid.flat(),   // flatten 2D array into 1D
+            grid:grid.flat(),
             ready:true,
             winner:false,
             createdAt:firebase.firestore.FieldValue.serverTimestamp()
