@@ -132,40 +132,49 @@
     let unsubscribeCards = null;
 
     // Start new game (auto-finish old ones first)
-    newGameBtn.onclick = async () => {
-      // Finish any old games
-      const oldGames = await db.collection("bingo_games")
-        .where("status", "in", ["waiting","active"]).get();
-      oldGames.forEach(doc => {
-        doc.ref.update({ status: "finished", endedAt: firebase.firestore.FieldValue.serverTimestamp() });
-      });
+newGameBtn.onclick = async () => {
+  // Finish old games
+  const oldGames = await db.collection("bingo_games")
+    .where("status", "in", ["waiting","active"]).get();
 
-      // Create new game
-      const ref = db.collection('bingo_games').doc();
-      await ref.set({
-        gameId: ref.id,
-        status: 'waiting',
-        calledNumbers: [],
-        maxNumber: maxNumber,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        startedAt: null,
-        endedAt: null
-      });
-      gameRef = ref;
-      gameId = ref.id;
-      statusTxt.textContent = 'waiting';
-      startBtn.disabled = false;
-      drawBtn.disabled = true;
-      finishBtn.disabled = true;
+  for (const doc of oldGames.docs) {
+    await doc.ref.update({ status: "finished", endedAt: firebase.firestore.FieldValue.serverTimestamp() });
 
-      const joinUrl = `${location.origin}/party/bingo/bingo.html?game=${gameId}`;
-      joinUrlEl.textContent = joinUrl;
-      qrWrap.classList.remove('hidden');
-      drawQR(qrCanvas, joinUrl);
+    // Delete old cards linked to this game
+    const oldCards = await db.collection("bingo_cards")
+      .where("gameId", "==", doc.id).get();
+    for (const card of oldCards.docs) {
+      await card.ref.delete();
+    }
+  }
 
-      subscribeCards();
-      subscribeGame();
-    };
+  // Create new game
+  const ref = db.collection('bingo_games').doc();
+  await ref.set({
+    gameId: ref.id,
+    status: 'waiting',
+    calledNumbers: [],
+    maxNumber: 75,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    startedAt: null,
+    endedAt: null
+  });
+
+  gameRef = ref;
+  gameId = ref.id;
+  statusTxt.textContent = 'waiting';
+  startBtn.disabled = false;
+  drawBtn.disabled = true;
+  finishBtn.disabled = true;
+
+  const joinUrl = `${location.origin}/party/bingo/bingo.html?game=${gameId}`;
+  joinUrlEl.textContent = joinUrl;
+  qrWrap.classList.remove('hidden');
+  drawQR(qrCanvas, joinUrl);
+
+  subscribeCards();
+  subscribeGame();
+};
 
     // Start bingo
     startBtn.onclick = async () => {
