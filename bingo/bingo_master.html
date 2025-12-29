@@ -18,6 +18,7 @@
     .players { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
     .card { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 12px; }
     .qr { background: #fff; color: #000; display: inline-block; padding: 8px; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
@@ -58,7 +59,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-auth-compat.js"></script>
 
-  <!-- QR generator (simple API call) -->
+  <!-- QR generator -->
   <script>
     async function drawQR(canvas, text) {
       const url = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(text)}`;
@@ -130,8 +131,16 @@
     let maxNumber = 75;
     let unsubscribeCards = null;
 
-    // Create new game
+    // Start new game (auto-finish old ones first)
     newGameBtn.onclick = async () => {
+      // Finish any old games
+      const oldGames = await db.collection("bingo_games")
+        .where("status", "in", ["waiting","active"]).get();
+      oldGames.forEach(doc => {
+        doc.ref.update({ status: "finished", endedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      });
+
+      // Create new game
       const ref = db.collection('bingo_games').doc();
       await ref.set({
         gameId: ref.id,
@@ -179,7 +188,7 @@
       const called = data.calledNumbers || [];
       const pool = Array.from({ length: maxNumber }, (_, i) => i + 1)
         .filter(n => !called.includes(n));
-      if (pool.length === 0) return;
+      if (pool.length === 0) return; // no numbers left
       const next = pool[Math.floor(Math.random() * pool.length)];
       await gameRef.update({
         calledNumbers: [...called, next]
