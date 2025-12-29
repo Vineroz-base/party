@@ -5,19 +5,21 @@
   <title>Bingo Guest</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; }
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background:#111; color:#fff; }
     .hidden { display: none; }
-    .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-    .cell { padding: 12px; text-align: center; border: 2px solid #333; border-radius: 8px; font-weight: 700; }
-    .hit { background: #4CAF50; color: white; }
-    .toolbar { display: flex; gap: 8px; margin: 12px 0; }
-    .called { display: flex; flex-wrap: wrap; gap: 6px; }
-    .badge { padding: 6px 10px; background: #eee; border-radius: 999px; }
+    .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; max-width: 90vw; margin:auto; }
+    .cell { aspect-ratio: 1 / 1; width: 100%; display:flex; align-items:center; justify-content:center;
+            border: 2px solid #00ffff; border-radius: 8px; font-weight: 700; font-size:20px; }
+    .hit { background:#00ffff; color:#111; font-weight:bold; }
+    .toolbar { display: flex; gap: 8px; margin: 12px 0; justify-content:center; }
+    .called { display: flex; flex-wrap: wrap; gap: 6px; justify-content:center; }
+    .badge { padding: 6px 10px; background: #00ffff; color:#111; border-radius: 999px; font-weight:bold; }
     .winnerBanner { background: gold; color: black; font-size: 24px; font-weight: bold; padding: 12px; text-align: center; border-radius: 8px; margin: 12px 0; }
+    .glow { box-shadow: 0 0 25px #00ffff; border-radius:12px; padding:10px; }
   </style>
 </head>
 <body>
-  <h1>Bingo</h1>
+  <h1 style="text-align:center;">Bingo</h1>
   <div id="wait">Please wait for a new Bingo game to start</div>
 
   <div id="join" class="hidden">
@@ -35,8 +37,8 @@
   <div id="play" class="hidden">
     <h2 id="playerName"></h2>
     <div id="winnerBanner" class="winnerBanner hidden">🎉 BINGO! You won! 🎉</div>
-    <div id="gridPlay" class="grid"></div>
-    <h3>Numbers drawn</h3>
+    <div id="gridPlayWrap"><div id="gridPlay" class="grid"></div></div>
+    <h3 style="text-align:center;">Numbers drawn</h3>
     <div id="calledList" class="called"></div>
   </div>
 
@@ -82,6 +84,7 @@
     const readyBtn = document.getElementById('readyBtn');
     const gridEl = document.getElementById('grid');
     const gridPlayEl = document.getElementById('gridPlay');
+    const gridPlayWrap = document.getElementById('gridPlayWrap');
     const playerNameEl = document.getElementById('playerName');
     const calledListEl = document.getElementById('calledList');
     const winnerBannerEl = document.getElementById('winnerBanner');
@@ -110,11 +113,22 @@
         maxNumber = data.maxNumber || 75;
 
         if (data.status === "waiting") {
-          renderJoin();
+          // Check if card already stored locally
+          const storedCardId = localStorage.getItem("cardId");
+          const storedGameId = localStorage.getItem("gameId");
+          if (storedCardId && storedGameId === gameId) {
+            cardDocRef = db.collection('bingo_cards').doc(storedCardId);
+            renderPlay();
+          } else {
+            renderJoin();
+          }
         } else if (data.status === "active") {
-          renderPlay();
+          waitEl.textContent = "This game is already started, please wait for a new game.";
+          show(waitEl); hide(joinEl); hide(playEl);
         } else {
           waitEl.textContent = "Game finished.";
+          localStorage.removeItem("cardId");
+          localStorage.removeItem("gameId");
           show(waitEl); hide(joinEl); hide(playEl);
         }
       });
@@ -148,6 +162,8 @@
             createdAt:firebase.firestore.FieldValue.serverTimestamp()
           });
           cardDocRef=cardRef;
+          localStorage.setItem("cardId", cardRef.id);
+          localStorage.setItem("gameId", gameId);
           renderPlay();
         } catch(err){
           console.error("Error creating card:",err);
@@ -170,31 +186,41 @@
 
     function renderPlay(){
       hide(waitEl); hide(joinEl); show(playEl);
-      playerNameEl.textContent=nameInput.value.trim()||'Guest';
+      playerNameEl.textContent = nameInput.value.trim() || 'Guest';
 
+      // Listen to game state
       db.collection('bingo_games').doc(gameId).onSnapshot(doc=>{
-        const data=doc.data();
-        const called=data.calledNumbers||[];
-        const set=new Set(called);
+        const data = doc.data();
+        const called = data.calledNumbers || [];
+        const set = new Set(called);
         renderGridPlay(set);
         renderCalledList(called);
+
+        if (data.status === "finished") {
+          // Clear local storage when game ends
+          localStorage.removeItem("cardId");
+          localStorage.removeItem("gameId");
+        }
       });
 
       if(cardDocRef){
         cardDocRef.onSnapshot(doc=>{
-          const d=doc.data();
-          playerNameEl.textContent=d.playerName;
+          const d = doc.data();
+          if (!d) return;
+          playerNameEl.textContent = d.playerName;
           // reconstruct grid from flattened array
-          const arr=d.grid||[];
-          grid=[];
+          const arr = d.grid || [];
+          grid = [];
           for(let r=0;r<5;r++){
             grid.push(arr.slice(r*5,(r+1)*5));
           }
-          // ✅ Show winner banner if card is marked winner
+          // ✅ Show winner banner and glow effect if card is marked winner
           if (d.winner) {
             show(winnerBannerEl);
+            gridPlayWrap.classList.add("glow");
           } else {
             hide(winnerBannerEl);
+            gridPlayWrap.classList.remove("glow");
           }
         });
       }
@@ -202,7 +228,7 @@
 
     function renderGridPlay(calledSet){
       gridPlayEl.innerHTML='';
-      const mask=makeHighlightMask(grid,calledSet);
+      const mask = makeHighlightMask(grid, calledSet);
       for(let r=0;r<5;r++){
         for(let c=0;c<5;c++){
           const div=document.createElement('div');
