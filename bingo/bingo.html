@@ -44,7 +44,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-auth-compat.js"></script>
 
   <script>
-    // Your Firebase config
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyBmj-_hMVfz70jZU67Ugd1aRZodckJUj6A",
       authDomain: "github-party.firebaseapp.com",
@@ -54,13 +54,11 @@
       appId: "1:301660898316:web:ad9166ac91610d16239a29",
       measurementId: "G-Q7RBDS0HVF"
     };
-
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // Utility: shuffle + grid generator
+    // Utility functions
     function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
     function generateGrid5x5(maxNumber=75){
       const pool=Array.from({length:maxNumber},(_,i)=>i+1);
@@ -85,8 +83,6 @@
     const playerNameEl = document.getElementById('playerName');
     const calledListEl = document.getElementById('calledList');
 
-    let gameDoc = null;
-    let gameId = null;
     let maxNumber = 75;
     let cardDocRef = null;
     let grid = generateGrid5x5(maxNumber);
@@ -94,24 +90,35 @@
     // Sign in anonymously
     auth.signInAnonymously().catch(console.error);
 
-    // Listen for active game
-    db.collection('bingo_games')
-      .where('status', 'in', ['waiting','active'])
-      .orderBy('createdAt','desc')
-      .limit(1)
-      .onSnapshot(snap=>{
-        if(snap.empty){
+    // Get ?game=... from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const gameIdFromUrl = urlParams.get("game");
+    let gameId = null;
+
+    if (gameIdFromUrl) {
+      gameId = gameIdFromUrl;
+      db.collection('bingo_games').doc(gameId).onSnapshot(doc => {
+        if (!doc.exists) {
+          waitEl.textContent = "Game not found.";
           show(waitEl); hide(joinEl); hide(playEl);
           return;
         }
-        gameDoc = snap.docs[0];
-        gameId = gameDoc.id;
-        const data = gameDoc.data();
+        const data = doc.data();
         maxNumber = data.maxNumber || 75;
 
-        if(data.status==='waiting'){ renderJoin(); }
-        else if(data.status==='active'){ renderPlay(); }
+        if (data.status === "waiting") {
+          renderJoin();
+        } else if (data.status === "active") {
+          renderPlay();
+        } else {
+          waitEl.textContent = "Game finished.";
+          show(waitEl); hide(joinEl); hide(playEl);
+        }
       });
+    } else {
+      waitEl.textContent = "No game selected. Please use the QR link.";
+      show(waitEl); hide(joinEl); hide(playEl);
+    }
 
     function renderJoin(){
       hide(waitEl); show(joinEl);
@@ -128,7 +135,7 @@
         await cardRef.set({
           cardId:cardRef.id,
           playerUid:uid,
-          gameId,
+          gameId:gameId,   // ✅ link to the game from URL
           playerName,
           grid,
           ready:true,
