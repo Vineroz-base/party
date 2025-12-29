@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Bingo Master</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #111; color: #fff; }
+    h1, h2, h3 { margin: 8px 0; }
+    .controls { display: flex; gap: 12px; margin: 12px 0; }
+    button { font-size: 18px; padding: 10px 16px; }
+    .panel { margin-top: 16px; }
+    .called { display: flex; flex-wrap: wrap; gap: 8px; }
+    .badge { padding: 8px 12px; background: #222; border: 1px solid #444; border-radius: 999px; }
+    .gridSm { display: grid; grid-template-columns: repeat(5, 40px); gap: 4px; margin-top: 8px; }
+    .cell { width: 40px; height: 40px; display: grid; place-items: center; background: #333; border-radius: 6px; }
+    .hit { background: #4CAF50; color: #fff; }
+    .players { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+    .card { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 12px; }
+    .qr { background: #fff; color: #000; display: inline-block; padding: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Bingo Master</h1>
+  <div class="controls">
+    <button id="newGameBtn">Start new game</button>
+    <button id="startBtn" disabled>Start bingo</button>
+    <button id="drawBtn" disabled>Draw number</button>
+    <button id="finishBtn" disabled>Finish</button>
+  </div>
+
+  <div class="panel">
+    <h2>Status: <span id="statusTxt">idle</span></h2>
+    <div id="qrWrap" class="hidden">
+      <h3>Join via QR</h3>
+      <canvas id="qrCanvas" class="qr"></canvas>
+      <div>Or visit: <span id="joinUrl"></span></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Players ready: <span id="readyCount">0</span></h2>
+    <div id="players" class="players"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Numbers drawn</h2>
+    <div id="called" class="called"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Proximity to bingo</h2>
+    <div id="proximity"></div>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-auth-compat.js"></script>
+
+  <!-- QR generator (simple API call) -->
+  <script>
+    async function drawQR(canvas, text) {
+      const url = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(text)}`;
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const ctx = canvas.getContext('2d');
+        canvas.width = 200; canvas.height = 200;
+        ctx.drawImage(img, 0, 0, 200, 200);
+      };
+      img.src = url;
+    }
+  </script>
+
+  <!-- Utils -->
+  <script>
+    function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+    function makeHighlightMask(grid, set){return grid.map(row=>row.map(n=>set.has(n)));}
+    function evaluateCard(grid, set){
+      const mask = makeHighlightMask(grid, set);
+      const lines = [];
+      for (let r=0;r<5;r++) lines.push(mask[r]);
+      for (let c=0;c<5;c++) lines.push(mask.map(row=>row[c]));
+      lines.push([0,1,2,3,4].map(i=>mask[i][i]));
+      lines.push([0,1,2,3,4].map(i=>mask[i][4-i]));
+      let completed=0, minAway=5;
+      for (const line of lines) {
+        const hits = line.filter(Boolean).length;
+        if (hits===5) completed++;
+        const away=5-hits;
+        if (away<minAway) minAway=away;
+      }
+      return { completed, minAway, mask };
+    }
+  </script>
+
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBmj-_hMVfz70jZU67Ugd1aRZodckJUj6A",
+      authDomain: "github-party.firebaseapp.com",
+      projectId: "github-party",
+      storageBucket: "github-party.firebasestorage.app",
+      messagingSenderId: "301660898316",
+      appId: "1:301660898316:web:ad9166ac91610d16239a29",
+      measurementId: "G-Q7RBDS0HVF"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+    auth.signInAnonymously().catch(console.error);
+
+    // DOM refs
+    const newGameBtn = document.getElementById('newGameBtn');
+    const startBtn = document.getElementById('startBtn');
+    const drawBtn = document.getElementById('drawBtn');
+    const finishBtn = document.getElementById('finishBtn');
+    const statusTxt = document.getElementById('statusTxt');
+    const qrWrap = document.getElementById('qrWrap');
+    const qrCanvas = document.getElementById('qrCanvas');
+    const joinUrlEl = document.getElementById('joinUrl');
+    const calledEl = document.getElementById('called');
+    const playersEl = document.getElementById('players');
+    const readyCountEl = document.getElementById('readyCount');
+    const proximityEl = document.getElementById('proximity');
+
+    let gameRef = null;
+    let gameId = null;
+    let maxNumber = 75;
+    let unsubscribeCards = null;
+
+    // Create new game
+    newGameBtn.onclick = async () => {
+      const ref = db.collection('bingo_games').doc();
+      await ref.set({
+        gameId: ref.id,
+        status: 'waiting',
+        calledNumbers: [],
+        maxNumber: maxNumber,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        startedAt: null,
+        endedAt: null
+      });
+      gameRef = ref;
+      gameId = ref.id;
+      statusTxt.textContent = 'waiting';
+      startBtn.disabled = false;
+      drawBtn.disabled = true;
+      finishBtn.disabled = true;
+
+      const joinUrl = `${location.origin}/bingo/bingo.html?game=${gameId}`;
+      joinUrlEl.textContent = joinUrl;
+      qrWrap.classList.remove('hidden');
+      drawQR(qrCanvas, joinUrl);
+
+      subscribeCards();
+      subscribeGame();
+    };
+
+    // Start bingo
+    startBtn.onclick = async () => {
+      if (!gameRef) return;
+      await gameRef.update({
+        status: 'active',
+        startedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      statusTxt.textContent = 'active';
+      startBtn.disabled = true;
+      drawBtn.disabled = false;
+      finishBtn.disabled = false;
+    };
+
+    // Draw number
+    drawBtn.onclick = async () => {
+      if (!gameRef) return;
+      const snap = await gameRef.get();
+      const data = snap.data();
+      const called = data.calledNumbers || [];
+      const pool = Array.from({ length: maxNumber }, (_, i) => i + 1)
+        .filter(n => !called.includes(n));
+      if (pool.length === 0) return;
+      const next = pool[Math.floor(Math.random() * pool.length)];
+      await gameRef.update({
+        calledNumbers: [...called, next]
+      });
+    };
+
+    // Finish game
+    finishBtn.onclick = async () => {
+      if (!gameRef) return;
+      await gameRef.update({
+        status: 'finished',
+        endedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      statusTxt.textContent
