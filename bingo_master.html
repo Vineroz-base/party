@@ -176,7 +176,7 @@
         const data=doc.data(); if(!data) return;
         if(data.status==='waiting'){
           const playersReady=(await db.collection('bingo_cards').where('gameId','==',gameId).where('ready','==',true).get()).docs.length;
-          const joinUrl=`${location.origin}/party/bingo/bingo.html?game=${gameId}`;
+          const joinUrl=`${location.origin}/party/bingo.html?game=${gameId}`;
           renderStageWaiting(playersReady,joinUrl);
         } else if(data.status==='active'){
           const called=data.calledNumbers||[];
