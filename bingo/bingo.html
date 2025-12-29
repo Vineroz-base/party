@@ -114,6 +114,7 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
+    // Utility functions
     function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
     function generateGrid5x5(maxNumber=75){
       const pool=Array.from({length:maxNumber},(_,i)=>i+1);
@@ -161,24 +162,46 @@
     const urlParams=new URLSearchParams(window.location.search);
     const gameId=urlParams.get("game");
 
+    // Snapshot handler with fixes
     if(gameId){
       db.collection('bingo_games').doc(gameId).onSnapshot(doc=>{
-        if(!doc.exists){waitEl.textContent="Game not found.";show(waitEl);hide(joinEl);hide(playEl);return;}
-        const data=doc.data(); maxNumber=data.maxNumber||75;
+        if(!doc.exists){
+          waitEl.textContent="Game not found.";
+          show(waitEl); hide(joinEl); hide(playEl);
+          return;
+        }
+        const data=doc.data();
+        maxNumber=data.maxNumber||75;
+
+        const storedCardId=localStorage.getItem("cardId");
+        const storedGameId=localStorage.getItem("gameId");
+
         if(data.status==="waiting"||data.status==="active"){
-          const storedCardId=localStorage.getItem("cardId");
-          const storedGameId=localStorage.getItem("gameId");
           if(storedCardId&&storedGameId===gameId){
             cardDocRef=db.collection('bingo_cards').doc(storedCardId);
             cardDocRef.get().then(cd=>{
               if(cd.exists){
-                const arr=cd.data().grid||[]; grid=[]; for(let r=0;r<5;r++){grid.push(arr.slice(r*5,(r+1)*5));}
+                const arr=cd.data().grid||[];
+                grid=[]; for(let r=0;r<5;r++){grid.push(arr.slice(r*5,(r+1)*5));}
                 renderPlay();
-              } else {localStorage.clear(); renderJoin();}
+              } else {
+                localStorage.clear();
+                if(data.status==="waiting"){grid=generateGrid5x5(maxNumber);renderJoin();}
+                else {waitEl.textContent="This game is already started, please wait for a new game.";show(waitEl);hide(joinEl);hide(playEl);}
+              }
             });
-          } else if(data.status==="waiting"){grid=generateGrid5x5(maxNumber);renderJoin();}
-          else {waitEl.textContent="This game is already started, please wait for a new game.";show(waitEl);hide(joinEl);hide(playEl);}
-        } else {waitEl.textContent="Game finished.";localStorage.clear();show(waitEl);hide(playEl);}
+          } else if(data.status==="waiting"){
+            grid=generateGrid5x5(maxNumber);
+            renderJoin();
+          } else {
+            waitEl.textContent="This game is already started, please wait for a new game.";
+            show(waitEl); hide(joinEl); hide(playEl);
+          }
+        } else if(data.status==="finished"){
+          waitEl.textContent="Game finished.";
+          localStorage.clear();
+          show(waitEl); hide(joinEl); hide(playEl);
+        }
       });
     } else {
       waitEl.textContent="No game selected. Please use the QR link.";
@@ -246,8 +269,10 @@
         cardDocRef.onSnapshot(doc=>{
           const d=doc.data(); if(!d) return;
           playerNameEl.textContent=d.playerName;
-          const arr=d.grid||[]; grid=[]; for(let r=0;r<5;r++){grid.push(arr.slice(r*5,(r+1)*5));}
-          if(d.winner){triggerWinEffects();} else {hide(winnerBannerEl);gridPlayWrap.classList.remove("glow");}
+          const arr=d.grid||[];
+          grid=[]; for(let r=0;r<5;r++){grid.push(arr.slice(r*5,(r+1)*5));}
+          if(d.winner){triggerWinEffects();}
+          else {hide(winnerBannerEl);gridPlayWrap.classList.remove("glow");}
         });
       }
     }
@@ -263,4 +288,33 @@
           if(winningCells.some(([wr,wc])=>wr===r&&wc===c)) cls+=' winningCell';
           div.className=cls;
           div.textContent=grid[r][c];
-          gridPlay
+          gridPlayEl.appendChild(div);
+        }
+      }
+    }
+
+    function renderCalledList(called){
+      calledListEl.innerHTML='';
+      called.forEach(n=>{
+        const span=document.createElement('span');
+        span.className='badge';
+        span.textContent=n;
+        calledListEl.appendChild(span);
+      });
+    }
+
+    function triggerWinEffects(){
+      show(winnerBannerEl);
+      gridPlayWrap.classList.add("glow");
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+    }
+
+    function show(el){el.classList.remove('hidden');}
+    function hide(el){el.classList.add('hidden');}
+  </script>
+</body>
+</html>
