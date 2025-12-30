@@ -13,7 +13,6 @@
     .smallBtn { font-size:20px; padding:10px 20px; margin-top:20px; }
     .winners { font-size:32px; margin:20px; }
     canvas { margin:20px; }
-    .toolbar { display:flex; gap:20px; justify-content:center; margin-top:20px; }
     #leaderboard { font-size:20px; max-height:50vh; overflow-y:auto; margin-top:20px; width:80%; }
     .lane { background:#222; border-radius:8px; margin:8px 0; padding:6px; position:relative; }
     .progress { background:linear-gradient(90deg,#38bdf8,#22c55e); height:20px; border-radius:6px; transition:width 0.2s ease; }
@@ -23,7 +22,6 @@
 <body>
   <div id="stageContainer"></div>
 
-  <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { getDatabase, ref, set, update, onValue, get } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
@@ -43,13 +41,15 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const auth = getAuth(app);
-    signInAnonymously(auth).catch(console.error);
+    signInAnonymously(auth)
+      .then(() => console.log("Admin signed in anonymously"))
+      .catch(err => console.error("Auth error:", err));
 
     const stageContainer = document.getElementById('stageContainer');
     const currentRaceRef = ref(db, "tapRace/currentRace");
     const playersRef = ref(db, "tapRace/players");
 
-    // QR generator (same style as Bingo)
+    // QR generator
     async function drawQR(canvas,text){
       const url=`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(text)}`;
       const img=new Image(); img.crossOrigin='anonymous';
@@ -113,10 +113,12 @@
     // Actions
     function createRace(){
       const target=Number(document.getElementById('targetInput').value);
-      set(currentRaceRef,{stage:"waiting",targetTaps:target,winnerId:null});
+      set(currentRaceRef,{stage:"waiting",targetTaps:target,winnerId:null})
+        .then(()=>console.log("Race created with target:",target))
+        .catch(err=>console.error("Failed to create race:",err));
     }
-    function startGame(){ update(currentRaceRef,{stage:"active"}); }
-    function restartGame(){ update(currentRaceRef,{stage:"waiting",winnerId:null}); }
+    function startGame(){ update(currentRaceRef,{stage:"active"}).catch(err=>console.error("Failed to start:",err)); }
+    function restartGame(){ update(currentRaceRef,{stage:"waiting",winnerId:null}).catch(err=>console.error("Failed to restart:",err)); }
 
     // Subscriptions
     onValue(currentRaceRef,(snap)=>{
@@ -138,7 +140,7 @@
           renderStageActive(entries,race.targetTaps);
           const winner=entries.find(e=>e.tapCount>=race.targetTaps);
           if(winner && race.stage==="active"){
-            update(currentRaceRef,{stage:"finished",winnerId:winner.uid});
+            update(currentRaceRef,{stage:"finished",winnerId:winner.uid}).catch(err=>console.error("Failed to finish:",err));
           }
         });
       } else if(race.stage==="finished"){
@@ -146,7 +148,7 @@
           const players=psnap.val()||{};
           const winner=players[race.winnerId];
           if(winner){ renderStageFinished(winner.name,winner.tapCount); }
-        });
+        }).catch(err=>console.error("Failed to get players:",err));
       } else {
         renderStageIdle();
       }
