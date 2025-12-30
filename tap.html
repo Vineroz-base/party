@@ -23,6 +23,7 @@
       flex-direction:column;
       justify-content:center;
       align-items:center;
+      position:relative;
     }
     #tapBtn {
       position:absolute;
@@ -80,7 +81,17 @@
     async function init() {
       log("Init started");
 
-      const firebaseConfig = { /* your config */ };
+      const firebaseConfig = {
+        apiKey: "AIzaSyBmj-_hMVfz70jZU67Ugd1aRZodckJUj6A",
+        authDomain: "github-party.firebaseapp.com",
+        databaseURL: "https://github-party-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "github-party",
+        storageBucket: "github-party.firebasestorage.app",
+        messagingSenderId: "301660898316",
+        appId: "1:301660898316:web:aee18e9b10d5cf89239a29",
+        measurementId: "G-1E7L3P0M2Q"
+      };
+
       const app = initializeApp(firebaseConfig);
       const db = getDatabase(app);
       const auth = getAuth(app);
