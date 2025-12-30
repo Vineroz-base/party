@@ -120,7 +120,13 @@
       let targetTaps=0, tapCount=0;
 
       function show(el){ el.classList.remove('hidden'); el.style.display = "block"; }
-      function hide(el){el.classList.add('hidden');}
+      function hide(el){
+        el.classList.add('hidden');
+        el.style.display = "none";
+        el.style.visibility = "hidden";
+        el.style.opacity = "0";
+      }
+
 
       // Check stored UID
       const storedUid = localStorage.getItem("tapRaceUid");
