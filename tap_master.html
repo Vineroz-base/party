@@ -145,13 +145,21 @@
 
     // Listen for players joining
     onValue(playersRef,(snap)=>{
-      const players=snap.val()||{};
-      const count=Object.keys(players).length;
-      playersCount.textContent="Players joined: "+count;
-      if(raceStage==="active"||raceStage==="finished"){
+      const players = snap.val() || {};
+      const count = Object.keys(players).length;
+      playersCount.textContent = "Players joined: " + count;
+    
+      if (raceStage === "active") {
         renderChart(players);
+    
+        // check win condition
+        for (const [id,p] of Object.entries(players)) {
+          if (p.tapCount >= targetTaps) {
+            update(raceRef,{ stage:"finished" });
+            break;
+          }
+        }
       }
-      log("Players updated, count: "+count);
     });
 
     // Listen for race state
