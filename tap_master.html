@@ -100,7 +100,9 @@
     const auth = getAuth(app);
 
     // Sign in anonymously so writes are allowed
-    signInAnonymously(auth).catch(err => console.error("Auth error:", err));
+    signInAnonymously(auth)
+      .then(() => console.log("Admin signed in anonymously"))
+      .catch(err => console.error("Auth error:", err));
 
     const idleStage = document.getElementById("idleStage");
     const waitingStage = document.getElementById("waitingStage");
