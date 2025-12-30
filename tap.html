@@ -127,6 +127,7 @@
 
       let playerRef=null, raceRef=ref(db,"tapRace/currentRace");
       let targetTaps=0, tapCount=0;
+      let playerName="";
 
       // Listen to race state
       onValue(raceRef,(snap)=>{
@@ -156,13 +157,18 @@
       });
 
       readyBtn.onclick=()=>{
-        const playerName=nameInput.value.trim()||"Guest";
+        playerName=nameInput.value.trim()||"Guest";
         const uid=auth.currentUser.uid;
         log("Ready clicked, name: "+playerName+", UID: "+uid);
         playerRef=ref(db,"tapRace/players/"+uid);
         set(playerRef,{name:playerName,tapCount:0});
         localStorage.setItem("tapRaceUid", uid);
-        // After ready, stay in join screen until master sets stage=active
+
+        // Replace join screen with locked name + waiting message
+        joinEl.innerHTML = `
+          <div style="font-size:20px; margin-bottom:10px;">Name: <strong>${playerName}</strong></div>
+          <div>Waiting for the race to start...</div>
+        `;
         hide(waitEl); show(joinEl); hide(playEl);
         log("Waiting for master to start race...");
       };
