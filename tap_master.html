@@ -83,6 +83,7 @@
   <!-- Finished -->
   <div id="finished" class="center hidden">
     <h2>Race finished!</h2>
+    <div id="winnerBanner" style="font-size:32px; color:gold; margin:20px;"></div>
     <div id="chart"></div>
     <button id="restartBtn">Restart game</button>
   </div>
@@ -179,13 +180,14 @@
         hide(idleEl); hide(waitEl); show(raceEl); hide(finishedEl);
       } else if(raceStage==="finished"){
         hide(idleEl); hide(waitEl); hide(raceEl); show(finishedEl);
+        renderChart(players); // keep chart
         confetti({ particleCount: 200, spread: 80, origin: { y: 0.6 } });
       }
     });
 
     function renderChart(players){
       chartDiv.innerHTML="";
-      const sorted=Object.values(players).sort((a,b)=>b.tapCount-a.tapCount).slice(0,10);
+      const sorted = Object.values(players).sort((a,b)=>b.tapCount-a.tapCount);
       sorted.forEach(p=>{
         const bar=document.createElement('div');
         const progress=Math.min(100,(p.tapCount/targetTaps)*100);
@@ -194,6 +196,7 @@
         bar.textContent=p.name+" ("+p.tapCount+")";
         if(raceStage==="finished" && p.tapCount>=targetTaps){
           bar.classList.add("winner");
+          winnerBanner.textContent = "🏆 Winner: " + p.name;
         }
         chartDiv.appendChild(bar);
       });
