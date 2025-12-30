@@ -36,6 +36,19 @@
       border-radius:6px;
       text-align:center;
     }
+    #debugLog {
+      position:fixed;
+      bottom:0;
+      left:0;
+      right:0;
+      max-height:40vh;
+      overflow:auto;
+      background:#222;
+      color:#0f0;
+      font-size:12px;
+      padding:4px;
+      z-index:9999;
+    }
   </style>
 </head>
 <body>
@@ -54,12 +67,19 @@
     <button id="tapBtn">Tap</button>
   </div>
 
+  <div id="debugLog">Debug panel initialized<br></div>
+
   <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { getDatabase, ref, set, update, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
     import confetti from "https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js";
+
+    function log(msg){
+      const el=document.getElementById("debugLog");
+      el.innerHTML += msg+"<br>";
+    }
 
     const firebaseConfig = {
       apiKey: "AIzaSyBmj-_hMVfz70jZU67Ugd1aRZodckJUj6A",
@@ -75,7 +95,10 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const auth = getAuth(app);
-    await signInAnonymously(auth);
+
+    signInAnonymously(auth)
+      .then(()=>log("Signed in anonymously, UID: "+auth.currentUser.uid))
+      .catch(err=>log("Auth error: "+err));
 
     const waitEl=document.getElementById('wait');
     const joinEl=document.getElementById('join');
@@ -97,28 +120,38 @@
       playerRef = ref(db,"tapRace/players/"+storedUid);
       onValue(playerRef,(snap)=>{
         if (!snap.exists()) {
+          log("Stored UID invalid, clearing localStorage");
           localStorage.clear();
+        } else {
+          log("Found stored player UID: "+storedUid);
         }
       });
     }
 
     // Listen to race state
     onValue(raceRef,(snap)=>{
+      log("raceRef onValue fired");
       const race=snap.val();
       if(!race){ 
+        log("No race object, clearing localStorage");
         localStorage.clear();
         show(waitEl); hide(joinEl); hide(playEl); 
         return; 
       }
       targetTaps=race.targetTaps||0;
+      log("Race stage: "+race.stage+", targetTaps: "+targetTaps);
       if(race.stage==="waiting"){
+        log("Entering waiting stage → showing join form");
         hide(waitEl); show(joinEl); hide(playEl);
       } else if(race.stage==="active"){
+        log("Entering active stage → showing play button");
         hide(waitEl); hide(joinEl); show(playEl);
         updateButtonText();
       } else if(race.stage==="finished"){
+        log("Race finished, clearing localStorage");
         localStorage.clear();
         hide(joinEl); show(waitEl); hide(playEl);
+        log("Winner UID: "+race.winnerId);
         if(race.winnerId===auth.currentUser.uid){
           triggerWinEffects();
         }
@@ -128,15 +161,18 @@
     readyBtn.onclick=()=>{
       const playerName=nameInput.value.trim()||"Guest";
       const uid=auth.currentUser.uid;
+      log("Ready clicked, name: "+playerName+", UID: "+uid);
       playerRef=ref(db,"tapRace/players/"+uid);
       set(playerRef,{name:playerName,tapCount:0});
       localStorage.setItem("tapRaceUid", uid);
+      log("PlayerRef path: tapRace/players/"+uid);
       hide(waitEl); hide(joinEl); show(playEl);
     };
 
     tapBtn.onclick=()=>{
       tapCount++;
       update(playerRef,{tapCount});
+      log("Tap button pressed, tapCount: "+tapCount);
       updateButtonText();
       moveButtonRandom();
     };
@@ -144,6 +180,7 @@
     function updateButtonText(){
       const left=Math.max(0,targetTaps-tapCount);
       tapBtn.textContent=left>0?`${left}`:"Done!";
+      log("Button text updated, taps left: "+left);
     }
 
     function moveButtonRandom(){
@@ -154,10 +191,12 @@
       const y=Math.floor(Math.random()*maxY);
       tapBtn.style.left=x+"px";
       tapBtn.style.top=y+"px";
+      log("Button moved to position: ("+x+","+y+")");
     }
 
     function triggerWinEffects(){
       show(winnerBanner);
+      log("Confetti triggered for winner UID: "+auth.currentUser.uid);
       confetti({
         particleCount: 150,
         spread: 70,
@@ -167,69 +206,7 @@
 
     // Initial position
     moveButtonRandom();
+    log("Initial button position set");
   </script>
-  <script>
-  // Simple on‑screen debug logger
-  function log(msg) {
-    let el = document.getElementById("debugLog");
-    if (!el) {
-      el = document.createElement("div");
-      el.id = "debugLog";
-      el.style.cssText = `
-        position:fixed;
-        bottom:0;
-        left:0;
-        right:0;
-        max-height:40vh;
-        overflow:auto;
-        background:#222;
-        color:#0f0;
-        font-size:12px;
-        padding:4px;
-        z-index:9999;
-      `;
-      document.body.appendChild(el);
-    }
-    el.innerHTML += msg + "<br>";
-  }
-
-  // Example usage:
-  log("Debug panel initialized");
-    
-  // After anonymous sign‑in
-  log("Signed in anonymously, UID: " + auth.currentUser.uid);
-  
-  // When race state snapshot fires
-  log("Race snapshot received");
-  log("Race stage: " + race.stage);
-  log("Race target taps: " + race.targetTaps);
-  
-  // When no race exists
-  log("No race found, clearing localStorage");
-  
-  // When entering waiting stage
-  log("Entering waiting stage → showing join form");
-  
-  // When entering active stage
-  log("Entering active stage → showing play button");
-  log("Current tapCount: " + tapCount);
-  
-  // When entering finished stage
-  log("Race finished, clearing localStorage");
-  log("Winner UID: " + race.winnerId);
-  
-  // When guest clicks Ready
-  log("Ready clicked, name: " + playerName + ", UID: " + uid);
-  log("PlayerRef path: tapRace/players/" + uid);
-  
-  // When tap button clicked
-  log("Tap button pressed, tapCount: " + tapCount);
-  log("Taps left: " + (targetTaps - tapCount));
-  log("Button moved to new position");
-  
-  // When confetti triggered
-  log("Confetti triggered for winner UID: " + auth.currentUser.uid);
-
-</script>
 </body>
 </html>
