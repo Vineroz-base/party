@@ -99,10 +99,7 @@
     import { getDatabase, ref, set, update, remove, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-    function log(msg){
-      const el=document.getElementById("debugLog");
-      el.innerHTML += msg+"<br>";
-    }
+    function log(msg){console.log(msg);}
     function show(el){ el.classList.remove('hidden'); }
     function hide(el){ el.classList.add('hidden'); }
 
