@@ -47,7 +47,12 @@
   </style>
 </head>
 <body>
-  <div id="wait" class="center">
+  <div id="idle" class="center">
+    <h2>Tap Race Master</h2>
+    <button id="newBtn">New Game</button>
+  </div>
+
+  <div id="wait" class="center hidden">
     <h2>Waiting for players to join...</h2>
     <div id="players"></div>
     <label>Target taps: <input id="targetInput" type="number" value="50" /></label>
@@ -61,7 +66,7 @@
 
   <div id="finished" class="center hidden">
     <h2 id="winnerMsg">Race finished</h2>
-    <button id="newBtn">New Game</button>
+    <button id="newBtn2">New Game</button>
   </div>
 
   <div id="debugLog">Debug panel initialized<br></div>
@@ -102,6 +107,7 @@
     const raceRef = ref(db,"tapRace/currentRace");
     const playersRef = ref(db,"tapRace/players");
 
+    const idleEl=document.getElementById('idle');
     const waitEl=document.getElementById('wait');
     const raceEl=document.getElementById('race');
     const finishedEl=document.getElementById('finished');
@@ -110,6 +116,7 @@
     const startBtn=document.getElementById('startBtn');
     const endBtn=document.getElementById('endBtn');
     const newBtn=document.getElementById('newBtn');
+    const newBtn2=document.getElementById('newBtn2');
     const winnerMsg=document.getElementById('winnerMsg');
 
     // Listen for players joining
@@ -130,15 +137,29 @@
         return;
       }
       log("Race stage: "+race.stage+", targetTaps: "+race.targetTaps);
-      if(race.stage==="waiting"){
-        show(waitEl); hide(raceEl); hide(finishedEl);
+      if(race.stage==="idle"){
+        show(idleEl); hide(waitEl); hide(raceEl); hide(finishedEl);
+      } else if(race.stage==="waiting"){
+        hide(idleEl); show(waitEl); hide(raceEl); hide(finishedEl);
       } else if(race.stage==="active"){
-        hide(waitEl); show(raceEl); hide(finishedEl);
+        hide(idleEl); hide(waitEl); show(raceEl); hide(finishedEl);
       } else if(race.stage==="finished"){
-        hide(waitEl); hide(raceEl); show(finishedEl);
+        hide(idleEl); hide(waitEl); hide(raceEl); show(finishedEl);
         winnerMsg.textContent = race.winnerId ? `Winner UID: ${race.winnerId}` : "Race finished";
       }
     });
+
+    newBtn.onclick=()=>{
+      set(raceRef,{stage:"waiting",targetTaps:parseInt(targetInput.value)||50});
+      remove(playersRef);
+      log("New game initialized (waiting stage)");
+    };
+
+    newBtn2.onclick=()=>{
+      set(raceRef,{stage:"waiting",targetTaps:parseInt(targetInput.value)||50});
+      remove(playersRef);
+      log("New game initialized (waiting stage)");
+    };
 
     startBtn.onclick=()=>{
       const target=parseInt(targetInput.value)||50;
@@ -147,7 +168,6 @@
     };
 
     endBtn.onclick=()=>{
-      // Find winner by highest tapCount
       onValue(playersRef,(snap)=>{
         const players=snap.val()||{};
         let winnerId=null, maxTaps=-1;
@@ -159,16 +179,10 @@
       },{onlyOnce:true});
     };
 
-    newBtn.onclick=()=>{
-      set(raceRef,{stage:"waiting",targetTaps:parseInt(targetInput.value)||50});
-      remove(playersRef);
-      log("New game initialized");
-    };
-
-    // Initialize race state
-    set(raceRef,{stage:"waiting",targetTaps:parseInt(targetInput.value)||50});
+    // Initialize race state to idle
+    set(raceRef,{stage:"idle"});
     remove(playersRef);
-    log("Race initialized to waiting stage");
+    log("Race initialized to idle stage");
   </script>
 </body>
 </html>
