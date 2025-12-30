@@ -150,7 +150,7 @@
         log("Race stage: "+race.stage+", targetTaps: "+targetTaps);
         if(race.stage==="waiting"){
           log("Entering waiting stage → showing join form");
-          hide(waitEl); show(joinEl); hide(playEl);
+          hide(waitEl); show(joinEl); log("joinEl classList: " + joinEl.className); hide(playEl);
         } else if(race.stage==="active"){
           log("Entering active stage → showing play button");
           hide(waitEl); hide(joinEl); show(playEl);
