@@ -81,132 +81,141 @@
       el.innerHTML += msg+"<br>";
     }
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBmj-_hMVfz70jZU67Ugd1aRZodckJUj6A",
-      authDomain: "github-party.firebaseapp.com",
-      databaseURL: "https://github-party-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "github-party",
-      storageBucket: "github-party.firebasestorage.app",
-      messagingSenderId: "301660898316",
-      appId: "1:301660898316:web:aee18e9b10d5cf89239a29",
-      measurementId: "G-1E7L3P0M2Q"
-    };
+    async function init() {
+      log("Init started");
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const auth = getAuth(app);
+      const firebaseConfig = {
+        apiKey: "AIzaSyBmj-_hMVfz70jZU67Ugd1aRZodckJUj6A",
+        authDomain: "github-party.firebaseapp.com",
+        databaseURL: "https://github-party-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "github-party",
+        storageBucket: "github-party.firebasestorage.app",
+        messagingSenderId: "301660898316",
+        appId: "1:301660898316:web:aee18e9b10d5cf89239a29",
+        measurementId: "G-1E7L3P0M2Q"
+      };
 
-    signInAnonymously(auth)
-      .then(()=>log("Signed in anonymously, UID: "+auth.currentUser.uid))
-      .catch(err=>log("Auth error: "+err));
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
+      const auth = getAuth(app);
 
-    const waitEl=document.getElementById('wait');
-    const joinEl=document.getElementById('join');
-    const playEl=document.getElementById('play');
-    const nameInput=document.getElementById('nameInput');
-    const readyBtn=document.getElementById('readyBtn');
-    const tapBtn=document.getElementById('tapBtn');
-    const winnerBanner=document.getElementById('winnerBanner');
+      try {
+        await signInAnonymously(auth);
+        log("Signed in anonymously, UID: " + auth.currentUser.uid);
+      } catch(err) {
+        log("Auth error: " + err);
+      }
 
-    let playerRef=null, raceRef=ref(db,"tapRace/currentRace");
-    let targetTaps=0, tapCount=0;
+      const waitEl=document.getElementById('wait');
+      const joinEl=document.getElementById('join');
+      const playEl=document.getElementById('play');
+      const nameInput=document.getElementById('nameInput');
+      const readyBtn=document.getElementById('readyBtn');
+      const tapBtn=document.getElementById('tapBtn');
+      const winnerBanner=document.getElementById('winnerBanner');
 
-    function show(el){el.classList.remove('hidden');}
-    function hide(el){el.classList.add('hidden');}
+      let playerRef=null, raceRef=ref(db,"tapRace/currentRace");
+      let targetTaps=0, tapCount=0;
 
-    // Check stored UID
-    const storedUid = localStorage.getItem("tapRaceUid");
-    if (storedUid) {
-      playerRef = ref(db,"tapRace/players/"+storedUid);
-      onValue(playerRef,(snap)=>{
-        if (!snap.exists()) {
-          log("Stored UID invalid, clearing localStorage");
+      function show(el){el.classList.remove('hidden');}
+      function hide(el){el.classList.add('hidden');}
+
+      // Check stored UID
+      const storedUid = localStorage.getItem("tapRaceUid");
+      if (storedUid) {
+        playerRef = ref(db,"tapRace/players/"+storedUid);
+        onValue(playerRef,(snap)=>{
+          if (!snap.exists()) {
+            log("Stored UID invalid, clearing localStorage");
+            localStorage.clear();
+          } else {
+            log("Found stored player UID: "+storedUid);
+          }
+        });
+      }
+
+      // Listen to race state
+      onValue(raceRef,(snap)=>{
+        log("raceRef onValue fired");
+        const race=snap.val();
+        if(!race){ 
+          log("No race object, clearing localStorage");
           localStorage.clear();
-        } else {
-          log("Found stored player UID: "+storedUid);
+          show(waitEl); hide(joinEl); hide(playEl); 
+          return; 
+        }
+        targetTaps=race.targetTaps||0;
+        log("Race stage: "+race.stage+", targetTaps: "+targetTaps);
+        if(race.stage==="waiting"){
+          log("Entering waiting stage → showing join form");
+          hide(waitEl); show(joinEl); hide(playEl);
+        } else if(race.stage==="active"){
+          log("Entering active stage → showing play button");
+          hide(waitEl); hide(joinEl); show(playEl);
+          updateButtonText();
+        } else if(race.stage==="finished"){
+          log("Race finished, clearing localStorage");
+          localStorage.clear();
+          hide(joinEl); show(waitEl); hide(playEl);
+          log("Winner UID: "+race.winnerId);
+          if(race.winnerId===auth.currentUser.uid){
+            triggerWinEffects();
+          }
         }
       });
-    }
 
-    // Listen to race state
-    onValue(raceRef,(snap)=>{
-      log("raceRef onValue fired");
-      const race=snap.val();
-      if(!race){ 
-        log("No race object, clearing localStorage");
-        localStorage.clear();
-        show(waitEl); hide(joinEl); hide(playEl); 
-        return; 
-      }
-      targetTaps=race.targetTaps||0;
-      log("Race stage: "+race.stage+", targetTaps: "+targetTaps);
-      if(race.stage==="waiting"){
-        log("Entering waiting stage → showing join form");
-        hide(waitEl); show(joinEl); hide(playEl);
-      } else if(race.stage==="active"){
-        log("Entering active stage → showing play button");
+      readyBtn.onclick=()=>{
+        const playerName=nameInput.value.trim()||"Guest";
+        const uid=auth.currentUser.uid;
+        log("Ready clicked, name: "+playerName+", UID: "+uid);
+        playerRef=ref(db,"tapRace/players/"+uid);
+        set(playerRef,{name:playerName,tapCount:0});
+        localStorage.setItem("tapRaceUid", uid);
+        log("PlayerRef path: tapRace/players/"+uid);
         hide(waitEl); hide(joinEl); show(playEl);
+      };
+
+      tapBtn.onclick=()=>{
+        tapCount++;
+        update(playerRef,{tapCount});
+        log("Tap button pressed, tapCount: "+tapCount);
         updateButtonText();
-      } else if(race.stage==="finished"){
-        log("Race finished, clearing localStorage");
-        localStorage.clear();
-        hide(joinEl); show(waitEl); hide(playEl);
-        log("Winner UID: "+race.winnerId);
-        if(race.winnerId===auth.currentUser.uid){
-          triggerWinEffects();
-        }
+        moveButtonRandom();
+      };
+
+      function updateButtonText(){
+        const left=Math.max(0,targetTaps-tapCount);
+        tapBtn.textContent=left>0?`${left}`:"Done!";
+        log("Button text updated, taps left: "+left);
       }
-    });
 
-    readyBtn.onclick=()=>{
-      const playerName=nameInput.value.trim()||"Guest";
-      const uid=auth.currentUser.uid;
-      log("Ready clicked, name: "+playerName+", UID: "+uid);
-      playerRef=ref(db,"tapRace/players/"+uid);
-      set(playerRef,{name:playerName,tapCount:0});
-      localStorage.setItem("tapRaceUid", uid);
-      log("PlayerRef path: tapRace/players/"+uid);
-      hide(waitEl); hide(joinEl); show(playEl);
-    };
+      function moveButtonRandom(){
+        const btnSize=90;
+        const maxX=window.innerWidth-btnSize;
+        const maxY=window.innerHeight-btnSize;
+        const x=Math.floor(Math.random()*maxX);
+        const y=Math.floor(Math.random()*maxY);
+        tapBtn.style.left=x+"px";
+        tapBtn.style.top=y+"px";
+        log("Button moved to position: ("+x+","+y+")");
+      }
 
-    tapBtn.onclick=()=>{
-      tapCount++;
-      update(playerRef,{tapCount});
-      log("Tap button pressed, tapCount: "+tapCount);
-      updateButtonText();
+      function triggerWinEffects(){
+        show(winnerBanner);
+        log("Confetti triggered for winner UID: "+auth.currentUser.uid);
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      }
+
+      // Initial position
       moveButtonRandom();
-    };
-
-    function updateButtonText(){
-      const left=Math.max(0,targetTaps-tapCount);
-      tapBtn.textContent=left>0?`${left}`:"Done!";
-      log("Button text updated, taps left: "+left);
+      log("Initial button position set");
     }
 
-    function moveButtonRandom(){
-      const btnSize=90;
-      const maxX=window.innerWidth-btnSize;
-      const maxY=window.innerHeight-btnSize;
-      const x=Math.floor(Math.random()*maxX);
-      const y=Math.floor(Math.random()*maxY);
-      tapBtn.style.left=x+"px";
-      tapBtn.style.top=y+"px";
-      log("Button moved to position: ("+x+","+y+")");
-    }
-
-    function triggerWinEffects(){
-      show(winnerBanner);
-      log("Confetti triggered for winner UID: "+auth.currentUser.uid);
-      confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
-    }
-
-    // Initial position
-    moveButtonRandom();
-    log("Initial button position set");
+    init();
   </script>
 </body>
 </html>
