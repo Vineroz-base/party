@@ -12,19 +12,10 @@
       color:#fff;
       height:100vh;
       overflow:hidden;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-    }
-    #stage {
-      width:100%;
-      height:100%;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      align-items:center;
       position:relative;
     }
+    .hidden { display:none; }
+    .center { display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; }
     #tapBtn {
       position:absolute;
       width:90px; height:90px;
@@ -61,7 +52,21 @@
   </style>
 </head>
 <body>
-  <div id="stage"></div>
+  <div id="wait" class="center">Please wait for a new Tap Race to start</div>
+
+  <div id="join" class="center hidden">
+    <label>
+      <span>Name:</span>
+      <input id="nameInput" maxlength="30" />
+    </label>
+    <button id="readyBtn" style="margin-top:20px; font-size:24px;">Ready</button>
+  </div>
+
+  <div id="play" class="hidden">
+    <div id="winnerBanner" class="winnerBanner hidden">🎉 You won! 🎉</div>
+    <button id="tapBtn">Tap</button>
+  </div>
+
   <div id="debugLog">Debug panel initialized<br></div>
 
   <!-- Confetti global -->
@@ -76,6 +81,15 @@
     function log(msg){
       const el=document.getElementById("debugLog");
       el.innerHTML += msg+"<br>";
+    }
+
+    function show(el){
+      el.classList.remove('hidden');
+      el.style.display = "flex";
+    }
+    function hide(el){
+      el.classList.add('hidden');
+      el.style.display = "none";
     }
 
     async function init() {
@@ -103,76 +117,16 @@
         log("Auth error: " + err);
       }
 
-      const stage=document.getElementById('stage');
+      const waitEl=document.getElementById('wait');
+      const joinEl=document.getElementById('join');
+      const playEl=document.getElementById('play');
+      const nameInput=document.getElementById('nameInput');
+      const readyBtn=document.getElementById('readyBtn');
+      const tapBtn=document.getElementById('tapBtn');
+      const winnerBanner=document.getElementById('winnerBanner');
+
       let playerRef=null, raceRef=ref(db,"tapRace/currentRace");
       let targetTaps=0, tapCount=0;
-
-      function renderWaiting(){
-        stage.innerHTML = `<div>Please wait for a new Tap Race to start</div>`;
-        log("Rendered waiting stage");
-      }
-
-      function renderJoin(){
-        stage.innerHTML = `
-          <label>
-            <span>Name:</span>
-            <input id="nameInput" maxlength="30" />
-          </label>
-          <button id="readyBtn" style="margin-top:20px; font-size:24px;">Ready</button>
-        `;
-        log("Rendered join stage");
-        document.getElementById('readyBtn').onclick=()=>{
-          const playerName=document.getElementById('nameInput').value.trim()||"Guest";
-          const uid=auth.currentUser.uid;
-          log("Ready clicked, name: "+playerName+", UID: "+uid);
-          playerRef=ref(db,"tapRace/players/"+uid);
-          set(playerRef,{name:playerName,tapCount:0});
-          localStorage.setItem("tapRaceUid", uid);
-          renderPlay();
-        };
-      }
-
-      function renderPlay(){
-        stage.innerHTML = `
-          <div id="winnerBanner" class="winnerBanner hidden">🎉 You won! 🎉</div>
-          <button id="tapBtn">Tap</button>
-        `;
-        log("Rendered play stage");
-        const tapBtn=document.getElementById('tapBtn');
-        tapBtn.onclick=()=>{
-          tapCount++;
-          update(playerRef,{tapCount});
-          log("Tap button pressed, tapCount: "+tapCount);
-          updateButtonText(tapBtn);
-          moveButtonRandom(tapBtn);
-        };
-        moveButtonRandom(tapBtn);
-        updateButtonText(tapBtn);
-      }
-
-      function updateButtonText(btn){
-        const left=Math.max(0,targetTaps-tapCount);
-        btn.textContent=left>0?`${left}`:"Done!";
-        log("Button text updated, taps left: "+left);
-      }
-
-      function moveButtonRandom(btn){
-        const btnSize=90;
-        const maxX=window.innerWidth-btnSize;
-        const maxY=window.innerHeight-btnSize;
-        const x=Math.floor(Math.random()*maxX);
-        const y=Math.floor(Math.random()*maxY);
-        btn.style.left=x+"px";
-        btn.style.top=y+"px";
-        log("Button moved to position: ("+x+","+y+")");
-      }
-
-      function triggerWinEffects(){
-        const banner=document.getElementById('winnerBanner');
-        if(banner){ banner.classList.remove('hidden'); }
-        log("Confetti triggered for winner UID: "+auth.currentUser.uid);
-        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-      }
 
       // Listen to race state
       onValue(raceRef,(snap)=>{
@@ -181,18 +135,19 @@
         if(!race){ 
           log("No race object, clearing localStorage");
           localStorage.clear();
-          renderWaiting();
+          show(waitEl); hide(joinEl); hide(playEl); 
           return; 
         }
         targetTaps=race.targetTaps||0;
         log("Race stage: "+race.stage+", targetTaps: "+targetTaps);
         if(race.stage==="waiting"){
-          renderJoin();
+          hide(waitEl); show(joinEl); hide(playEl);
         } else if(race.stage==="active"){
-          renderPlay();
+          hide(waitEl); hide(joinEl); show(playEl);
+          updateButtonText();
         } else if(race.stage==="finished"){
           localStorage.clear();
-          renderWaiting();
+          hide(joinEl); show(waitEl); hide(playEl);
           log("Winner UID: "+race.winnerId);
           if(race.winnerId===auth.currentUser.uid){
             triggerWinEffects();
@@ -200,7 +155,55 @@
         }
       });
 
-      renderWaiting();
+      readyBtn.onclick=()=>{
+        const playerName=nameInput.value.trim()||"Guest";
+        const uid=auth.currentUser.uid;
+        log("Ready clicked, name: "+playerName+", UID: "+uid);
+        playerRef=ref(db,"tapRace/players/"+uid);
+        set(playerRef,{name:playerName,tapCount:0});
+        localStorage.setItem("tapRaceUid", uid);
+        // After ready, stay in join screen until master sets stage=active
+        hide(waitEl); show(joinEl); hide(playEl);
+        log("Waiting for master to start race...");
+      };
+
+      tapBtn.onclick=()=>{
+        tapCount++;
+        update(playerRef,{tapCount});
+        log("Tap button pressed, tapCount: "+tapCount);
+        updateButtonText();
+        moveButtonRandom();
+      };
+
+      function updateButtonText(){
+        const left=Math.max(0,targetTaps-tapCount);
+        tapBtn.textContent=left>0?`${left}`:"Done!";
+        log("Button text updated, taps left: "+left);
+      }
+
+      function moveButtonRandom(){
+        const btnSize=90;
+        const maxX=window.innerWidth-btnSize;
+        const maxY=window.innerHeight-btnSize;
+        const x=Math.floor(Math.random()*maxX);
+        const y=Math.floor(Math.random()*maxY);
+        tapBtn.style.left=x+"px";
+        tapBtn.style.top=y+"px";
+        log("Button moved to position: ("+x+","+y+")");
+      }
+
+      function triggerWinEffects(){
+        show(winnerBanner);
+        log("Confetti triggered for winner UID: "+auth.currentUser.uid);
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      }
+
+      moveButtonRandom();
+      log("Initial button position set");
     }
 
     init();
