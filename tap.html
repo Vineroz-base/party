@@ -171,12 +171,18 @@
         log("Waiting for master to start race...");
       };
 
-      tapBtn.onclick=()=>{
+      tapBtn.onclick = () => {
+        if (tapCount >= targetTaps) return; // stop if already done
         tapCount++;
-        update(playerRef,{tapCount});
-        log("Tap button pressed, tapCount: "+tapCount);
-        updateButtonText();
-        moveButtonRandom();
+        update(ref(db,"tapRace/players/"+uid),{ tapCount });
+      
+        if (tapCount >= targetTaps) {
+          tapBtn.textContent = "Done!";
+          tapBtn.disabled = true; // prevent further taps
+        } else {
+          tapBtn.textContent = tapCount;
+          moveButtonRandomly();
+        }
       };
 
       function updateButtonText(){
