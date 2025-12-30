@@ -12,11 +12,9 @@
       color:#fff;
       height:100vh;
       overflow:hidden;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
+      position:relative;
     }
-    .hidden { display:none; }
+    .hidden { display:none !important; }
     .center { display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; }
     #debugLog {
       position:fixed;
@@ -136,22 +134,21 @@
     const chartDiv=document.getElementById('chart');
     const qrCanvas=document.getElementById('qrCanvas');
 
-    // QR code setup
     const qr = new QRious({ element: qrCanvas, size: 200 });
+
+    let raceStage="idle";
+    let targetTaps=0;
 
     // Listen for players joining
     onValue(playersRef,(snap)=>{
       const players=snap.val()||{};
       const count=Object.keys(players).length;
       playersCount.textContent="Players joined: "+count;
-      if(Object.keys(players).length>0 && (raceStage==="active"||raceStage==="finished")){
+      if(raceStage==="active"||raceStage==="finished"){
         renderChart(players);
       }
       log("Players updated, count: "+count);
     });
-
-    let raceStage="idle";
-    let targetTaps=0;
 
     // Listen for race state
     onValue(raceRef,(snap)=>{
@@ -164,19 +161,17 @@
         show(idleEl); hide(waitEl); hide(raceEl); hide(finishedEl);
       } else if(raceStage==="waiting"){
         hide(idleEl); show(waitEl); hide(raceEl); hide(finishedEl);
-        qr.value=window.location.origin+"/tap.html"; // join URL
+        qr.value=window.location.origin+"/tap.html";
       } else if(raceStage==="active"){
         hide(idleEl); hide(waitEl); show(raceEl); hide(finishedEl);
       } else if(raceStage==="finished"){
         hide(idleEl); hide(waitEl); hide(raceEl); show(finishedEl);
-        // Confetti for winner
         confetti({ particleCount: 200, spread: 80, origin: { y: 0.6 } });
       }
     });
 
     function renderChart(players){
       chartDiv.innerHTML="";
-      // Sort by tapCount desc, limit 10
       const sorted=Object.values(players).sort((a,b)=>b.tapCount-a.tapCount).slice(0,10);
       sorted.forEach(p=>{
         const bar=document.createElement('div');
