@@ -195,6 +195,41 @@
 
   // Example usage:
   log("Debug panel initialized");
-</script
+    
+  // After anonymous sign‑in
+  log("Signed in anonymously, UID: " + auth.currentUser.uid);
+  
+  // When race state snapshot fires
+  log("Race snapshot received");
+  log("Race stage: " + race.stage);
+  log("Race target taps: " + race.targetTaps);
+  
+  // When no race exists
+  log("No race found, clearing localStorage");
+  
+  // When entering waiting stage
+  log("Entering waiting stage → showing join form");
+  
+  // When entering active stage
+  log("Entering active stage → showing play button");
+  log("Current tapCount: " + tapCount);
+  
+  // When entering finished stage
+  log("Race finished, clearing localStorage");
+  log("Winner UID: " + race.winnerId);
+  
+  // When guest clicks Ready
+  log("Ready clicked, name: " + playerName + ", UID: " + uid);
+  log("PlayerRef path: tapRace/players/" + uid);
+  
+  // When tap button clicked
+  log("Tap button pressed, tapCount: " + tapCount);
+  log("Taps left: " + (targetTaps - tapCount));
+  log("Button moved to new position");
+  
+  // When confetti triggered
+  log("Confetti triggered for winner UID: " + auth.currentUser.uid);
+
+</script>
 </body>
 </html>
