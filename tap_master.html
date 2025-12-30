@@ -125,10 +125,14 @@
       const race=snap.val();
       if(!race){ renderStageIdle(); return; }
       if(race.stage==="waiting"){
+        const joinUrl = `${location.origin}/party/tap.html`;
+        // render immediately with 0 players
+        renderStageWaiting(0, joinUrl);
+      
+        // then subscribe to players to update count
         onValue(playersRef,(psnap)=>{
-          const players=psnap.val()||{};
-          const joinUrl=`${location.origin}/party/tap.html`; // fixed path
-          renderStageWaiting(Object.keys(players).length,joinUrl);
+          const players = psnap.val() || {};
+          renderStageWaiting(Object.keys(players).length, joinUrl);
         });
       } else if(race.stage==="active"){
         onValue(playersRef,(psnap)=>{
