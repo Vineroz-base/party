@@ -82,6 +82,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { getDatabase, ref, set, update, onValue, get } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBmj-_hMVfz70jZU67Ugd1aRZodckJUj6A",
@@ -96,6 +97,10 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    // Sign in anonymously so writes are allowed
+    signInAnonymously(auth).catch(err => console.error("Auth error:", err));
 
     const idleStage = document.getElementById("idleStage");
     const waitingStage = document.getElementById("waitingStage");
@@ -128,7 +133,6 @@
       showStage(race.stage);
 
       if (race.stage === "waiting") {
-        // Show player count
         onValue(playersRef, (psnap) => {
           const players = psnap.val() || {};
           playerCountEl.textContent = "Players joined: " + Object.keys(players).length;
@@ -156,7 +160,6 @@
             lane.appendChild(progress);
             leaderboardEl.appendChild(lane);
             if (e.tapCount >= max && race.stage === "active") {
-              // Winner reached target
               update(currentRaceRef, { stage: "finished", winnerId: e.uid });
             }
           });
