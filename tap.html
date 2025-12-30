@@ -99,15 +99,25 @@
       const race=snap.val();
       if(!race){ show(waitEl); hide(joinEl); hide(playEl); return; }
       targetTaps=race.targetTaps||0;
-      if(race.stage==="waiting"){
-        hide(waitEl); show(joinEl); hide(playEl);
-      } else if(race.stage==="active"){
-        hide(waitEl); hide(joinEl); show(playEl);
+      if(race.stage === "waiting") {
+        // Always show the join form during waiting stage
+        hide(waitEl);
+        show(joinEl);
+        hide(playEl);
+      } else if(race.stage === "active") {
+        hide(waitEl);
+        hide(joinEl);
+        show(playEl);
         updateButtonText();
-      } else if(race.stage==="finished"){
-        hide(joinEl); show(waitEl); hide(playEl);
-        if(race.winnerId===auth.currentUser.uid){
+      } else if(race.stage === "finished") {
+        hide(waitEl);
+        hide(joinEl);
+        hide(playEl);
+        // Show winner banner + confetti if this player won
+        if (race.winnerId === auth.currentUser.uid) {
           triggerWinEffects();
+        } else {
+          show(waitEl);
         }
       }
     });
