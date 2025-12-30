@@ -79,10 +79,8 @@
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
     function log(msg){
-      const el=document.getElementById("debugLog");
-      el.innerHTML += msg+"<br>";
+      console.log(msg);
     }
-
     function show(el){
       el.classList.remove('hidden');
       el.style.display = "flex";
