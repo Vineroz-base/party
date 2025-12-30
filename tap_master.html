@@ -97,6 +97,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { getDatabase, ref, set, update, remove, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
     function log(msg){
       const el=document.getElementById("debugLog");
@@ -118,6 +119,12 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+
+    // 🔑 Anonymous sign-in
+    const auth = getAuth(app);
+    signInAnonymously(auth)
+      .then(() => log("Master signed in anonymously"))
+      .catch(err => log("Auth error: "+err));
 
     const raceRef = ref(db,"tapRace/currentRace");
     const playersRef = ref(db,"tapRace/players");
@@ -161,7 +168,8 @@
         show(idleEl); hide(waitEl); hide(raceEl); hide(finishedEl);
       } else if(raceStage==="waiting"){
         hide(idleEl); show(waitEl); hide(raceEl); hide(finishedEl);
-        qr.value=window.location.origin+"/tap.html";
+        // ✅ include party repo path in join link
+        qr.value=window.location.origin+"/party/tap.html";
       } else if(raceStage==="active"){
         hide(idleEl); hide(waitEl); show(raceEl); hide(finishedEl);
       } else if(raceStage==="finished"){
@@ -187,27 +195,31 @@
     }
 
     createBtn.onclick=()=>{
-      set(raceRef,{stage:"waiting",targetTaps:parseInt(targetInput.value)||50});
+      set(raceRef,{stage:"waiting",targetTaps:parseInt(targetInput.value)||50})
+        .then(()=>log("Race created, waiting stage"))
+        .catch(err=>log("Error creating race: "+err));
       remove(playersRef);
-      log("Race created, waiting stage");
     };
 
     startBtn.onclick=()=>{
       const target=parseInt(targetInput.value)||50;
-      update(raceRef,{stage:"active",targetTaps:target});
-      log("Race started with targetTaps="+target);
+      update(raceRef,{stage:"active",targetTaps:target})
+        .then(()=>log("Race started with targetTaps="+target))
+        .catch(err=>log("Error starting race: "+err));
     };
 
     restartBtn.onclick=()=>{
-      set(raceRef,{stage:"idle"});
+      set(raceRef,{stage:"idle"})
+        .then(()=>log("Race reset to idle"))
+        .catch(err=>log("Error resetting race: "+err));
       remove(playersRef);
-      log("Race reset to idle");
     };
 
     // Initialize race state to idle
-    set(raceRef,{stage:"idle"});
+    set(raceRef,{stage:"idle"})
+      .then(()=>log("Race initialized to idle stage"))
+      .catch(err=>log("Error initializing race: "+err));
     remove(playersRef);
-    log("Race initialized to idle stage");
   </script>
 </body>
 </html>
