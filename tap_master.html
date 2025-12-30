@@ -51,6 +51,8 @@
       color: #facc15;
     }
   </style>
+  <!-- QRCode.js library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
   <h1>Tap Race</h1>
@@ -63,7 +65,7 @@
   </div>
 
   <div id="waitingStage" style="display:none;">
-    <div id="qr"><!-- QR code placeholder --></div>
+    <div id="qr"></div>
     <p id="playerCount">Players joined: 0</p>
     <button id="startBtn">Start Game</button>
   </div>
@@ -116,6 +118,7 @@
     const playerCountEl = document.getElementById("playerCount");
     const leaderboardEl = document.getElementById("leaderboard");
     const winnerMsg = document.getElementById("winnerMsg");
+    const qrDiv = document.getElementById("qr");
 
     const currentRaceRef = ref(db, "tapRace/currentRace");
     const playersRef = ref(db, "tapRace/players");
@@ -135,9 +138,19 @@
       showStage(race.stage);
 
       if (race.stage === "waiting") {
+        // Show player count
         onValue(playersRef, (psnap) => {
           const players = psnap.val() || {};
           playerCountEl.textContent = "Players joined: " + Object.keys(players).length;
+        });
+
+        // Generate QR code for guests to join
+        const joinUrl = window.location.origin + "/tap.html"; // adjust path if needed
+        qrDiv.innerHTML = ""; // clear old QR
+        new QRCode(qrDiv, {
+          text: joinUrl,
+          width: 256,
+          height: 256
         });
       }
 
