@@ -16,7 +16,6 @@
     }
     .hidden { display:none; }
     .center { display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; }
-    .big { font-size:48px; margin:20px; }
     #tapBtn {
       position:absolute;
       width:90px; height:90px;
@@ -60,8 +59,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { getDatabase, ref, set, update, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-
-    // Confetti library
     import confetti from "https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js";
 
     const firebaseConfig = {
@@ -94,30 +91,36 @@
     function show(el){el.classList.remove('hidden');}
     function hide(el){el.classList.add('hidden');}
 
+    // Check stored UID
+    const storedUid = localStorage.getItem("tapRaceUid");
+    if (storedUid) {
+      playerRef = ref(db,"tapRace/players/"+storedUid);
+      onValue(playerRef,(snap)=>{
+        if (!snap.exists()) {
+          localStorage.clear();
+        }
+      });
+    }
+
     // Listen to race state
     onValue(raceRef,(snap)=>{
       const race=snap.val();
-      if(!race){ show(waitEl); hide(joinEl); hide(playEl); return; }
+      if(!race){ 
+        localStorage.clear();
+        show(waitEl); hide(joinEl); hide(playEl); 
+        return; 
+      }
       targetTaps=race.targetTaps||0;
-      if(race.stage === "waiting") {
-        // Always show the join form during waiting stage
-        hide(waitEl);
-        show(joinEl);
-        hide(playEl);
-      } else if(race.stage === "active") {
-        hide(waitEl);
-        hide(joinEl);
-        show(playEl);
+      if(race.stage==="waiting"){
+        hide(waitEl); show(joinEl); hide(playEl);
+      } else if(race.stage==="active"){
+        hide(waitEl); hide(joinEl); show(playEl);
         updateButtonText();
-      } else if(race.stage === "finished") {
-        hide(waitEl);
-        hide(joinEl);
-        hide(playEl);
-        // Show winner banner + confetti if this player won
-        if (race.winnerId === auth.currentUser.uid) {
+      } else if(race.stage==="finished"){
+        localStorage.clear();
+        hide(joinEl); show(waitEl); hide(playEl);
+        if(race.winnerId===auth.currentUser.uid){
           triggerWinEffects();
-        } else {
-          show(waitEl);
         }
       }
     });
@@ -127,6 +130,7 @@
       const uid=auth.currentUser.uid;
       playerRef=ref(db,"tapRace/players/"+uid);
       set(playerRef,{name:playerName,tapCount:0});
+      localStorage.setItem("tapRaceUid", uid);
       hide(waitEl); hide(joinEl); show(playEl);
     };
 
