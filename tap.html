@@ -66,6 +66,11 @@
     <div id="winnerBanner" class="winnerBanner hidden">🎉 You won! 🎉</div>
     <button id="tapBtn">Tap</button>
   </div>
+  
+  <div id="finished" class="center hidden">
+    <h2 id="finishMessage"></h2>
+    <p id="finishSub"></p>
+  </div>
 
   <!-- <div id="debugLog">Debug panel initialized<br></div> -->
 
@@ -129,27 +134,22 @@
 
       // Listen to race state
       onValue(raceRef,(snap)=>{
-        log("raceRef onValue fired");
-        const race=snap.val();
-        if(!race){ 
-          log("No race object, clearing localStorage");
-          localStorage.clear();
-          show(waitEl); hide(joinEl); hide(playEl); 
-          return; 
-        }
-        targetTaps=race.targetTaps||0;
-        log("Race stage: "+race.stage+", targetTaps: "+targetTaps);
-        if(race.stage==="waiting"){
-          hide(waitEl); show(joinEl); hide(playEl);
-        } else if(race.stage==="active"){
-          hide(waitEl); hide(joinEl); show(playEl);
-          updateButtonText();
-        } else if(race.stage==="finished"){
-          localStorage.clear();
-          hide(joinEl); show(waitEl); hide(playEl);
-          log("Winner UID: "+race.winnerId);
-          if(race.winnerId===auth.currentUser.uid){
-            triggerWinEffects();
+        const race = snap.val();
+        if(!race) return;
+        const stage = race.stage;
+      
+        if(stage==="waiting"){ show(joinEl); hide(playEl); hide(finishedEl); }
+        else if(stage==="active"){ show(playEl); hide(joinEl); hide(finishedEl); }
+        else if(stage==="finished"){
+          hide(playEl); hide(joinEl); show(finishedEl);
+      
+          if(tapCount >= race.targetTaps){
+            finishMessage.textContent = "🎉 You are the WINNER!";
+            finishSub.textContent = "Congratulations!";
+            confetti({ particleCount: 200, spread: 80, origin: { y: 0.6 } });
+          } else {
+            finishMessage.textContent = "The race is now finished.";
+            finishSub.textContent = "Please wait for a new race to start.";
           }
         }
       });
