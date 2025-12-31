@@ -64,17 +64,16 @@
   <!-- Race -->
   <div id="race" class="center hidden">
     <h2>Race in progress!</h2>
+    <div id="chart"></div>
   </div>
 
   <!-- Finished -->
   <div id="finished" class="center hidden">
     <h2>Race finished!</h2>
     <div id="winnerBanner" style="font-size:32px; color:gold; margin:20px;"></div>
+    <div id="chart"></div>
     <button id="restartBtn">Restart game</button>
   </div>
-
-  <!-- Shared chart container -->
-  <div id="chart"></div>
 
   <!-- QR code generator -->
   <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>
@@ -122,7 +121,7 @@
     const startBtn=document.getElementById('startBtn');
     const restartBtn=document.getElementById('restartBtn');
     const playersCount=document.getElementById('playersCount');
-    const chartDiv=document.getElementById('chart');
+    const chartDivs=document.querySelectorAll('#chart'); // both race and finished
     const qrCanvas=document.getElementById('qrCanvas');
     const winnerBanner=document.getElementById('winnerBanner');
 
@@ -161,37 +160,41 @@
       log("Race stage: "+raceStage+", targetTaps: "+targetTaps);
       if(raceStage==="idle"){
         show(idleEl); hide(waitEl); hide(raceEl); hide(finishedEl);
-        chartDiv.innerHTML=""; // clear chart
+        clearCharts();
       } else if(raceStage==="waiting"){
         hide(idleEl); show(waitEl); hide(raceEl); hide(finishedEl);
         qr.value=window.location.origin+"/party/tap.html";
-        chartDiv.innerHTML=""; // clear chart
+        clearCharts();
       } else if(raceStage==="active"){
         hide(idleEl); hide(waitEl); show(raceEl); hide(finishedEl);
-        show(chartDiv);
         renderChart(latestPlayers);
       } else if(raceStage==="finished"){
         hide(idleEl); hide(waitEl); hide(raceEl); show(finishedEl);
-        show(chartDiv);
-        renderChart(latestPlayers); // chart persists
+        renderChart(latestPlayers);
         confetti({ particleCount: 200, spread: 80, origin: { y: 0.6 } });
       }
     });
 
+    function clearCharts(){
+      chartDivs.forEach(div => div.innerHTML="");
+    }
+
     function renderChart(players){
-      chartDiv.innerHTML="";
-      const sorted = Object.values(players).sort((a,b)=>b.tapCount-a.tapCount);
-      sorted.forEach(p=>{
-        const bar=document.createElement('div');
-        const progress=Math.min(100,(p.tapCount/targetTaps)*100);
-        bar.className="bar";
-        bar.style.width=progress+"%";
-        bar.textContent=p.name+" ("+p.tapCount+")";
-        if(raceStage==="finished" && p.tapCount>=targetTaps){
-          bar.classList.add("winner");
-          winnerBanner.textContent = "🏆 Winner: " + p.name;
-        }
-        chartDiv.appendChild(bar);
+      chartDivs.forEach(div => {
+        div.innerHTML="";
+        const sorted = Object.values(players).sort((a,b)=>b.tapCount-a.tapCount);
+        sorted.forEach(p=>{
+          const bar=document.createElement('div');
+          const progress=Math.min(100,(p.tapCount/targetTaps)*100);
+          bar.className="bar";
+          bar.style.width=progress+"%";
+          bar.textContent=p.name+" ("+p.tapCount+")";
+          if(raceStage==="finished" && p.tapCount>=targetTaps){
+            bar.classList.add("winner");
+            winnerBanner.textContent = "🏆 Winner: " + p.name;
+          }
+          div.appendChild(bar);
+        });
       });
     }
 
