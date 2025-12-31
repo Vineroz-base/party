@@ -112,6 +112,26 @@
       let targetTaps=0, tapCount=0;
       let playerName="", uid=null;
 
+      // Restore UID if available
+      const savedUid = localStorage.getItem("tapRaceUid");
+      if (savedUid) {
+        uid = savedUid;
+        playerRef = ref(db,"tapRace/players/"+uid);
+        onValue(playerRef,(snap)=>{
+          const player = snap.val();
+          if(player){
+            playerName = player.name;
+            tapCount = player.tapCount || 0;
+            log("Restored player: "+playerName+", taps="+tapCount);
+          } else {
+            // Player record missing, clear localStorage
+            localStorage.removeItem("tapRaceUid");
+            uid = null;
+            playerRef = null;
+          }
+        });
+      }
+
       // Listen to race state
       onValue(raceRef,(snap)=>{
         const race = snap.val();
@@ -119,8 +139,30 @@
         log("Race stage (guest): "+race.stage+", targetTaps: "+race.targetTaps);
         const stage = race.stage;
       
-        if(stage==="waiting"){ hide(waitEl); show(joinEl); hide(playEl); hide(finishedEl); }
-        else if(stage==="active"){ hide(waitEl); show(playEl); hide(joinEl); hide(finishedEl); targetTaps=race.targetTaps; }
+        if(stage==="waiting"){
+          hide(waitEl); hide(playEl); hide(finishedEl);
+          if(uid && playerName){
+            // Already joined
+            joinEl.innerHTML = `
+              <div style="font-size:20px; margin-bottom:10px;">Name: <strong>${playerName}</strong></div>
+              <div>Waiting for the race to start...</div>
+            `;
+            show(joinEl);
+          } else {
+            show(joinEl);
+          }
+        }
+        else if(stage==="active"){
+          hide(waitEl); hide(joinEl); hide(finishedEl); show(playEl);
+          targetTaps=race.targetTaps;
+          tapBtn.textContent = tapCount>0 ? tapCount : "Tap";
+          if(tapCount>=targetTaps){
+            tapBtn.textContent="Done!";
+            tapBtn.disabled=true;
+          } else {
+            moveButtonRandom();
+          }
+        }
         else if(stage==="finished"){
           hide(waitEl); hide(playEl); hide(joinEl); show(finishedEl);      
           if(tapCount >= race.targetTaps){
