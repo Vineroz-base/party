@@ -99,14 +99,70 @@
       const finishedEl = document.getElementById('finished');
       const finishMessage = document.getElementById('finishMessage');
       const finishSub = document.getElementById('finishSub');
-      const nameInput = document.getElementById('nameInput');
-      const readyBtn = document.getElementById('readyBtn');
       const tapBtn = document.getElementById('tapBtn');
       const winnerBanner = document.getElementById('winnerBanner');
 
       let playerRef=null, raceRef=ref(db,"tapRace/currentRace");
       let targetTaps=0, tapCount=0;
       let playerName="", uid=null;
+      let joining=false;
+
+      function bindJoinForm(){
+        const nameInput = document.getElementById('nameInput');
+        const readyBtn = document.getElementById('readyBtn');
+        readyBtn.onclick = () => {
+          uid = auth.currentUser.uid;
+          playerName = nameInput.value.trim() || "Guest";
+          playerRef = ref(db,"tapRace/players/"+uid);
+          joining=true;
+
+          console.log("[READY] About to set player record:", uid, playerName);
+
+          set(playerRef,{name:playerName,tapCount:0})
+            .then(() => {
+              console.log("[READY] Player record written successfully");
+              // attach listener for new players
+              onValue(playerRef,(snap)=>{
+                const player = snap.val();
+                if(player){
+                  console.log("[PLAYER REF] Snapshot received:", player);
+                  playerName = player.name;
+                  tapCount = player.tapCount || 0;
+                  joining=false;
+                } else if(!joining){
+                  console.log("[PLAYER REF] Snapshot is null — resetting state");
+                  localStorage.removeItem("tapRaceUid");
+                  uid = null;
+                  playerRef = null;
+                  tapCount = 0;
+                  playerName = "";
+                  hide(playEl); hide(finishedEl);
+                  show(joinEl);
+                  joinEl.innerHTML = `
+                    <label>
+                      <span>Name:</span>
+                      <input id="nameInput" maxlength="30" />
+                    </label>
+                    <button id="readyBtn" style="margin-top:20px; font-size:24px;">Ready</button>
+                  `;
+                  bindJoinForm();
+                }
+              });
+            })
+            .catch(err => console.log("[READY] Error writing player record:", err));
+
+          localStorage.setItem("tapRaceUid", uid);
+
+          joinEl.innerHTML = `
+            <div style="font-size:20px; margin-bottom:10px;">Name: <strong>${playerName}</strong></div>
+            <div>Waiting for the race to start...</div>
+          `;
+          hide(waitEl); show(joinEl); hide(playEl);
+        };
+      }
+
+      // initial binding
+      bindJoinForm();
 
       const savedUid = localStorage.getItem("tapRaceUid");
       if (savedUid) {
@@ -134,6 +190,7 @@
               </label>
               <button id="readyBtn" style="margin-top:20px; font-size:24px;">Ready</button>
             `;
+            bindJoinForm();
           }
         });
       }
@@ -175,6 +232,7 @@
             return;
           }
           hide(waitEl); hide(joinEl); hide(finishedEl); show(playEl);
+          tapBtn.disabled = false;
           const remaining = targetTaps - tapCount;
           tapBtn.textContent = remaining > 0 ? remaining : "Done!";
           if(tapCount >= targetTaps){
@@ -195,26 +253,6 @@
           }
         }
       });
-
-      readyBtn.onclick = () => {
-        uid = auth.currentUser.uid;
-        playerName = nameInput.value.trim() || "Guest";
-        playerRef = ref(db,"tapRace/players/"+uid);
-      
-        console.log("[READY] About to set player record:", uid, playerName);
-      
-        set(playerRef,{name:playerName,tapCount:0})
-          .then(() => console.log("[READY] Player record written successfully"))
-          .catch(err => console.log("[READY] Error writing player record:", err));
-      
-        localStorage.setItem("tapRaceUid", uid);
-      
-        joinEl.innerHTML = `
-          <div style="font-size:20px; margin-bottom:10px;">Name: <strong>${playerName}</strong></div>
-          <div>Waiting for the race to start...</div>
-        `;
-        hide(waitEl); show(joinEl); hide(playEl);
-      };
 
       tapBtn.onclick = () => {
         if (tapCount >= targetTaps) return;
