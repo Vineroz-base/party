@@ -119,11 +119,10 @@
         log("Race stage (guest): "+race.stage+", targetTaps: "+race.targetTaps);
         const stage = race.stage;
       
-        if(stage==="waiting"){ show(joinEl); hide(playEl); hide(finishedEl); }
-        else if(stage==="active"){ show(playEl); hide(joinEl); hide(finishedEl); targetTaps=race.targetTaps; }
+        if(stage==="waiting"){ hide(waitEl); show(joinEl); hide(playEl); hide(finishedEl); }
+        else if(stage==="active"){ hide(waitEl); show(playEl); hide(joinEl); hide(finishedEl); targetTaps=race.targetTaps; }
         else if(stage==="finished"){
-          hide(playEl); hide(joinEl); show(finishedEl);
-      
+          hide(waitEl); hide(playEl); hide(joinEl); show(finishedEl);      
           if(tapCount >= race.targetTaps){
             finishMessage.textContent = "🎉 You are the WINNER!";
             finishSub.textContent = "Congratulations!";
