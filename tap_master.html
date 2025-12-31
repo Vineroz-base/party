@@ -153,17 +153,24 @@
 
     // Listen for race state
     onValue(raceRef,(snap)=>{
-      const race=snap.val();
-      if(!race){ return; }
-      raceStage=race.stage;
-      targetTaps=race.targetTaps||0;
+      const race = snap.val();
+      if(!race){
+        // If no race exists yet, initialize once
+        set(raceRef,{stage:"idle"});
+        remove(playersRef);
+        return;
+      }
+    
+      raceStage = race.stage;
+      targetTaps = race.targetTaps || 0;
       log("Race stage: "+raceStage+", targetTaps: "+targetTaps);
+    
       if(raceStage==="idle"){
         show(idleEl); hide(waitEl); hide(raceEl); hide(finishedEl);
         clearCharts();
       } else if(raceStage==="waiting"){
         hide(idleEl); show(waitEl); hide(raceEl); hide(finishedEl);
-        qr.value=window.location.origin+"/party/tap.html";
+        qr.value = window.location.origin + "/party/tap.html";
         clearCharts();
       } else if(raceStage==="active"){
         hide(idleEl); hide(waitEl); show(raceEl); hide(finishedEl);
@@ -219,11 +226,12 @@
       remove(playersRef);
     };
 
-    // Initialize race state to idle
+/*    // Initialize race state to idle
     set(raceRef,{stage:"idle"})
       .then(()=>log("Race initialized to idle stage"))
       .catch(err=>log("Error initializing race: "+err));
     remove(playersRef);
+*/    
   </script>
 </body>
 </html>
