@@ -59,10 +59,8 @@
     <p id="finishSub"></p>
   </div>
 
-  <!-- Confetti global -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { getDatabase, ref, set, update, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
@@ -73,8 +71,6 @@
     function hide(el){ el.classList.add('hidden'); el.style.display="none"; }
 
     async function init() {
-      log("Init started");
-
       const firebaseConfig = {
         apiKey: "AIzaSyBmj-_hMVfz70jZU67Ugd1aRZodckJUj6A",
         authDomain: "github-party.firebaseapp.com",
@@ -112,7 +108,6 @@
       let targetTaps=0, tapCount=0;
       let playerName="", uid=null;
 
-      // Restore UID if available
       const savedUid = localStorage.getItem("tapRaceUid");
       if (savedUid) {
         uid = savedUid;
@@ -124,7 +119,6 @@
             tapCount = player.tapCount || 0;
             log("Restored player: "+playerName+", taps="+tapCount);
           } else {
-            // Player record missing, clear localStorage
             localStorage.removeItem("tapRaceUid");
             uid = null;
             playerRef = null;
@@ -132,17 +126,16 @@
         });
       }
 
-      // Listen to race state
       onValue(raceRef,(snap)=>{
         const race = snap.val();
         if(!race) return;
-        log("Race stage (guest): "+race.stage+", targetTaps: "+race.targetTaps);
         const stage = race.stage;
+        targetTaps = race.targetTaps || 0;
+        log("Race stage (guest): "+stage+", targetTaps: "+targetTaps);
       
         if(stage==="waiting"){
           hide(waitEl); hide(playEl); hide(finishedEl);
           if(uid && playerName){
-            // Already joined
             joinEl.innerHTML = `
               <div style="font-size:20px; margin-bottom:10px;">Name: <strong>${playerName}</strong></div>
               <div>Waiting for the race to start...</div>
@@ -153,19 +146,25 @@
           }
         }
         else if(stage==="active"){
+          if(!uid || !playerRef){
+            hide(waitEl); hide(joinEl); hide(playEl);
+            show(finishedEl);
+            finishMessage.textContent = "Race is in progress.";
+            finishSub.textContent = "Please wait for the next game to start.";
+            return;
+          }
           hide(waitEl); hide(joinEl); hide(finishedEl); show(playEl);
-          targetTaps=race.targetTaps;
-          tapBtn.textContent = tapCount>0 ? tapCount : "Tap";
-          if(tapCount>=targetTaps){
-            tapBtn.textContent="Done!";
-            tapBtn.disabled=true;
+          const remaining = targetTaps - tapCount;
+          tapBtn.textContent = remaining > 0 ? remaining : "Done!";
+          if(tapCount >= targetTaps){
+            tapBtn.disabled = true;
           } else {
             moveButtonRandom();
           }
         }
         else if(stage==="finished"){
           hide(waitEl); hide(playEl); hide(joinEl); show(finishedEl);      
-          if(tapCount >= race.targetTaps){
+          if(tapCount >= targetTaps){
             finishMessage.textContent = "🎉 You are the WINNER!";
             finishSub.textContent = "Congratulations!";
             confetti({ particleCount: 200, spread: 80, origin: { y: 0.6 } });
@@ -179,7 +178,6 @@
       readyBtn.onclick=()=>{
         uid = auth.currentUser.uid;
         playerName = nameInput.value.trim() || "Guest";
-        log("Ready clicked, name: "+playerName+", UID: "+uid);
         playerRef = ref(db,"tapRace/players/"+uid);
         set(playerRef,{name:playerName,tapCount:0});
         localStorage.setItem("tapRaceUid", uid);
@@ -189,19 +187,18 @@
           <div>Waiting for the race to start...</div>
         `;
         hide(waitEl); show(joinEl); hide(playEl);
-        log("Waiting for master to start race...");
       };
 
       tapBtn.onclick = () => {
-        if (tapCount >= targetTaps) return; // stop if already done
+        if (tapCount >= targetTaps) return;
         tapCount++;
         update(ref(db,"tapRace/players/"+uid),{ tapCount });
-      
+        const remaining = targetTaps - tapCount;
         if (tapCount >= targetTaps) {
           tapBtn.textContent = "Done!";
           tapBtn.disabled = true;
         } else {
-          tapBtn.textContent = tapCount;
+          tapBtn.textContent = remaining;
           moveButtonRandom();
         }
       };
@@ -214,11 +211,9 @@
         const y=Math.floor(Math.random()*maxY);
         tapBtn.style.left=x+"px";
         tapBtn.style.top=y+"px";
-        log("Button moved to position: ("+x+","+y+")");
       }
 
       moveButtonRandom();
-      log("Initial button position set");
     }
 
     init();
