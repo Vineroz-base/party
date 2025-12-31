@@ -167,7 +167,7 @@
         hide(idleEl); hide(waitEl); show(raceEl); hide(finishedEl);
       } else if(raceStage==="finished"){
         hide(idleEl); hide(waitEl); hide(raceEl); show(finishedEl);
-        renderChart(latestPlayers); // use latestPlayers
+        renderChart(latestPlayers); // ✅ safe now
         confetti({ particleCount: 200, spread: 80, origin: { y: 0.6 } });
       }
     });
