@@ -64,16 +64,17 @@
   <!-- Race -->
   <div id="race" class="center hidden">
     <h2>Race in progress!</h2>
-    <div id="chart"></div>
   </div>
 
   <!-- Finished -->
   <div id="finished" class="center hidden">
     <h2>Race finished!</h2>
     <div id="winnerBanner" style="font-size:32px; color:gold; margin:20px;"></div>
-    <div id="chart"></div>
     <button id="restartBtn">Restart game</button>
   </div>
+
+  <!-- Shared chart container -->
+  <div id="chart"></div>
 
   <!-- QR code generator -->
   <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>
@@ -160,14 +161,17 @@
       log("Race stage: "+raceStage+", targetTaps: "+targetTaps);
       if(raceStage==="idle"){
         show(idleEl); hide(waitEl); hide(raceEl); hide(finishedEl);
+        chartDiv.innerHTML=""; // clear chart
       } else if(raceStage==="waiting"){
         hide(idleEl); show(waitEl); hide(raceEl); hide(finishedEl);
         qr.value=window.location.origin+"/party/tap.html";
+        chartDiv.innerHTML=""; // clear chart
       } else if(raceStage==="active"){
         hide(idleEl); hide(waitEl); show(raceEl); hide(finishedEl);
+        renderChart(latestPlayers);
       } else if(raceStage==="finished"){
         hide(idleEl); hide(waitEl); hide(raceEl); show(finishedEl);
-        renderChart(latestPlayers); // ✅ safe now
+        renderChart(latestPlayers); // chart persists
         confetti({ particleCount: 200, spread: 80, origin: { y: 0.6 } });
       }
     });
