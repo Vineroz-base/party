@@ -16,19 +16,6 @@
     }
     .hidden { display:none !important; }
     .center { display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; }
-    #debugLog {
-      position:fixed;
-      bottom:0;
-      left:0;
-      right:0;
-      max-height:40vh;
-      overflow:auto;
-      background:#222;
-      color:#0f0;
-      font-size:12px;
-      padding:4px;
-      z-index:9999;
-    }
     #playersCount {
       margin-top:20px;
       font-size:20px;
@@ -88,8 +75,6 @@
     <button id="restartBtn">Restart game</button>
   </div>
 
-  <!-- <div id="debugLog">Debug panel initialized<br></div> -->
-
   <!-- QR code generator -->
   <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>
   <!-- Confetti -->
@@ -118,7 +103,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // 🔑 Anonymous sign-in
+    // Anonymous sign-in
     const auth = getAuth(app);
     signInAnonymously(auth)
       .then(() => log("Master signed in anonymously"))
@@ -138,30 +123,31 @@
     const playersCount=document.getElementById('playersCount');
     const chartDiv=document.getElementById('chart');
     const qrCanvas=document.getElementById('qrCanvas');
+    const winnerBanner=document.getElementById('winnerBanner');
 
     const qr = new QRious({ element: qrCanvas, size: 200 });
 
     let raceStage="idle";
     let targetTaps=0;
+    let latestPlayers = {};
 
     // Listen for players joining
     onValue(playersRef, (snap) => {
-      const players = snap.val() || {};
-      const count = Object.keys(players).length;
+      latestPlayers = snap.val() || {};
+      const count = Object.keys(latestPlayers).length;
       playersCount.textContent = "Players joined: " + count;
     
       if (raceStage === "active") {
-        renderChart(players);
-    
+        renderChart(latestPlayers);
         // check win condition
-        for (const [id, p] of Object.entries(players)) {
+        for (const [id, p] of Object.entries(latestPlayers)) {
           if (p.tapCount >= targetTaps) {
             update(raceRef, { stage: "finished" });
             break;
           }
         }
       } else if (raceStage === "finished") {
-        renderChart(players); // this line throws if players is undefined
+        renderChart(latestPlayers);
       }
     });
 
@@ -176,13 +162,12 @@
         show(idleEl); hide(waitEl); hide(raceEl); hide(finishedEl);
       } else if(raceStage==="waiting"){
         hide(idleEl); show(waitEl); hide(raceEl); hide(finishedEl);
-        // ✅ include party repo path in join link
         qr.value=window.location.origin+"/party/tap.html";
       } else if(raceStage==="active"){
         hide(idleEl); hide(waitEl); show(raceEl); hide(finishedEl);
       } else if(raceStage==="finished"){
         hide(idleEl); hide(waitEl); hide(raceEl); show(finishedEl);
-        renderChart(players); // keep chart
+        renderChart(latestPlayers); // use latestPlayers
         confetti({ particleCount: 200, spread: 80, origin: { y: 0.6 } });
       }
     });
