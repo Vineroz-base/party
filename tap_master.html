@@ -24,18 +24,36 @@
       width:90%;
       margin-top:20px;
     }
-    .bar {
-      background:#00ffff;
-      color:#111;
+    .playerRow {
+      display:flex;
+      align-items:center;
       margin:4px 0;
-      padding:4px;
-      border-radius:4px;
-      transition:width 0.3s;
     }
+    .playerName {
+      font-weight:bold;
+      margin-right:10px;
+      width:clamp(80px, 20%, 150px);
+      text-align:right;
+    }
+    .bar {
+      flex:1;
+      border-radius:4px;
+      transition:width 0.6s ease-in-out;
+      height:24px;
+    }
+    .bar:nth-child(4n+1) { background:#00ffff; }
+    .bar:nth-child(4n+2) { background:#ff00ff; }
+    .bar:nth-child(4n+3) { background:#ffff00; }
+    .bar:nth-child(4n+4) { background:#00ff00; }
     .winner {
       background:gold !important;
       color:black !important;
-      box-shadow:0 0 20px gold;
+      animation:pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0% { transform:scale(1); box-shadow:0 0 10px gold; }
+      50% { transform:scale(1.05); box-shadow:0 0 25px gold; }
+      100% { transform:scale(1); box-shadow:0 0 10px gold; }
     }
     button {
       margin:10px;
@@ -103,7 +121,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Anonymous sign-in
     const auth = getAuth(app);
     signInAnonymously(auth)
       .then(() => log("Master signed in anonymously"))
@@ -121,7 +138,7 @@
     const startBtn=document.getElementById('startBtn');
     const restartBtn=document.getElementById('restartBtn');
     const playersCount=document.getElementById('playersCount');
-    const chartDivs=document.querySelectorAll('#chart'); // both race and finished
+    const chartDivs=document.querySelectorAll('#chart');
     const qrCanvas=document.getElementById('qrCanvas');
     const winnerBanner=document.getElementById('winnerBanner');
 
@@ -131,7 +148,6 @@
     let targetTaps=0;
     let latestPlayers = {};
 
-    // Listen for players joining
     onValue(playersRef, (snap) => {
       latestPlayers = snap.val() || {};
       const count = Object.keys(latestPlayers).length;
@@ -139,7 +155,6 @@
     
       if (raceStage === "active") {
         renderChart(latestPlayers);
-        // check win condition
         for (const [id, p] of Object.entries(latestPlayers)) {
           if (p.tapCount >= targetTaps) {
             update(raceRef, { stage: "finished" });
@@ -151,11 +166,9 @@
       }
     });
 
-    // Listen for race state
     onValue(raceRef,(snap)=>{
       const race = snap.val();
       if(!race){
-        // If no race exists yet, initialize once
         set(raceRef,{stage:"idle"});
         remove(playersRef);
         return;
@@ -168,6 +181,7 @@
       if(raceStage==="idle"){
         show(idleEl); hide(waitEl); hide(raceEl); hide(finishedEl);
         clearCharts();
+        winnerBanner.textContent="";
       } else if(raceStage==="waiting"){
         hide(idleEl); show(waitEl); hide(raceEl); hide(finishedEl);
         qr.value = window.location.origin + "/party/tap.html";
@@ -191,16 +205,26 @@
         div.innerHTML="";
         const sorted = Object.values(players).sort((a,b)=>b.tapCount-a.tapCount);
         sorted.forEach(p=>{
+          const row=document.createElement('div');
+          row.className="playerRow";
+
+          const nameSpan=document.createElement('span');
+          nameSpan.className="playerName";
+          nameSpan.textContent=p.name;
+
           const bar=document.createElement('div');
-          const progress=Math.min(100,(p.tapCount/targetTaps)*100);
           bar.className="bar";
+          const progress=Math.min(100,(p.tapCount/targetTaps)*100);
           bar.style.width=progress+"%";
-          bar.textContent=p.name+" ("+p.tapCount+")";
+
           if(raceStage==="finished" && p.tapCount>=targetTaps){
             bar.classList.add("winner");
             winnerBanner.textContent = "🏆 Winner: " + p.name;
           }
-          div.appendChild(bar);
+
+          row.appendChild(nameSpan);
+          row.appendChild(bar);
+          div.appendChild(row);
         });
       });
     }
@@ -225,13 +249,6 @@
         .catch(err=>log("Error resetting race: "+err));
       remove(playersRef);
     };
-
-/*    // Initialize race state to idle
-    set(raceRef,{stage:"idle"})
-      .then(()=>log("Race initialized to idle stage"))
-      .catch(err=>log("Error initializing race: "+err));
-    remove(playersRef);
-*/    
   </script>
 </body>
 </html>
