@@ -36,19 +36,6 @@
       border-radius:6px;
       text-align:center;
     }
-    #debugLog {
-      position:fixed;
-      bottom:0;
-      left:0;
-      right:0;
-      max-height:40vh;
-      overflow:auto;
-      background:#222;
-      color:#0f0;
-      font-size:12px;
-      padding:4px;
-      z-index:9999;
-    }
   </style>
 </head>
 <body>
@@ -72,8 +59,6 @@
     <p id="finishSub"></p>
   </div>
 
-  <!-- <div id="debugLog">Debug panel initialized<br></div> -->
-
   <!-- Confetti global -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
@@ -83,17 +68,9 @@
     import { getDatabase, ref, set, update, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-    function log(msg){
-      console.log(msg);
-    }
-    function show(el){
-      el.classList.remove('hidden');
-      el.style.display = "flex";
-    }
-    function hide(el){
-      el.classList.add('hidden');
-      el.style.display = "none";
-    }
+    function log(msg){ console.log(msg); }
+    function show(el){ el.classList.remove('hidden'); el.style.display="flex"; }
+    function hide(el){ el.classList.add('hidden'); el.style.display="none"; }
 
     async function init() {
       log("Init started");
@@ -120,21 +97,20 @@
         log("Auth error: " + err);
       }
 
-      const waitEl=document.getElementById('wait');
-      const joinEl=document.getElementById('join');
-      const playEl=document.getElementById('play');
-      const finishEl = document.getElementById('finished');
+      const waitEl = document.getElementById('wait');
+      const joinEl = document.getElementById('join');
+      const playEl = document.getElementById('play');
+      const finishedEl = document.getElementById('finished');
       const finishMessage = document.getElementById('finishMessage');
       const finishSub = document.getElementById('finishSub');
-      const nameInput=document.getElementById('nameInput');
-      const readyBtn=document.getElementById('readyBtn');
-      const tapBtn=document.getElementById('tapBtn');
-      const winnerBanner=document.getElementById('winnerBanner');
+      const nameInput = document.getElementById('nameInput');
+      const readyBtn = document.getElementById('readyBtn');
+      const tapBtn = document.getElementById('tapBtn');
+      const winnerBanner = document.getElementById('winnerBanner');
 
       let playerRef=null, raceRef=ref(db,"tapRace/currentRace");
       let targetTaps=0, tapCount=0;
-      let playerName="";
-      let uid = null;
+      let playerName="", uid=null;
 
       // Listen to race state
       onValue(raceRef,(snap)=>{
@@ -143,7 +119,7 @@
         const stage = race.stage;
       
         if(stage==="waiting"){ show(joinEl); hide(playEl); hide(finishedEl); }
-        else if(stage==="active"){ show(playEl); hide(joinEl); hide(finishedEl); }
+        else if(stage==="active"){ show(playEl); hide(joinEl); hide(finishedEl); targetTaps=race.targetTaps; }
         else if(stage==="finished"){
           hide(playEl); hide(joinEl); show(finishedEl);
       
@@ -159,15 +135,13 @@
       });
 
       readyBtn.onclick=()=>{
-        uid=auth.currentUser.uid;
-        playerName=nameInput.value.trim()||"Guest";
-        const uid=auth.currentUser.uid;
+        uid = auth.currentUser.uid;
+        playerName = nameInput.value.trim() || "Guest";
         log("Ready clicked, name: "+playerName+", UID: "+uid);
-        playerRef=ref(db,"tapRace/players/"+uid);
+        playerRef = ref(db,"tapRace/players/"+uid);
         set(playerRef,{name:playerName,tapCount:0});
         localStorage.setItem("tapRaceUid", uid);
 
-        // Replace join screen with locked name + waiting message
         joinEl.innerHTML = `
           <div style="font-size:20px; margin-bottom:10px;">Name: <strong>${playerName}</strong></div>
           <div>Waiting for the race to start...</div>
@@ -183,18 +157,12 @@
       
         if (tapCount >= targetTaps) {
           tapBtn.textContent = "Done!";
-          tapBtn.disabled = true; // prevent further taps
+          tapBtn.disabled = true;
         } else {
           tapBtn.textContent = tapCount;
           moveButtonRandom();
         }
       };
-
-      function updateButtonText(){
-        const left=Math.max(0,targetTaps-tapCount);
-        tapBtn.textContent=left>0?`${left}`:"Done!";
-        log("Button text updated, taps left: "+left);
-      }
 
       function moveButtonRandom(){
         const btnSize=90;
@@ -205,16 +173,6 @@
         tapBtn.style.left=x+"px";
         tapBtn.style.top=y+"px";
         log("Button moved to position: ("+x+","+y+")");
-      }
-
-      function triggerWinEffects(){
-        show(winnerBanner);
-        log("Confetti triggered for winner UID: "+auth.currentUser.uid);
-        confetti({
-          particleCount: 150,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
       }
 
       moveButtonRandom();
