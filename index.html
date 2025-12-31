@@ -1,25 +1,88 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>QR to Number</title>
+    <title>Party Lobby</title>
     <style>
       body {
         background-color: #121212;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
+        color: #ffffff;
+        font-family: Arial, sans-serif;
         margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
       }
-      img {
-        width: 100vw;   /* fill screen width */
-        height: 100vh;  /* fill screen height */
-        object-fit: contain; /* keep proportions */
+      h1 {
+        margin: 20px 0;
+        font-size: 2.5em;
+        text-align: center;
+      }
+      .games {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 30px;
+        max-width: 1200px;
+      }
+      .game-card {
+        background-color: #1e1e1e;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        width: 300px;
+        box-shadow: 0 0 15px rgba(0,0,0,0.5);
+      }
+      .game-card h2 {
+        margin-bottom: 15px;
+        font-size: 1.5em;
+      }
+      .game-card img {
+        width: 250px;
+        height: 250px;
+        object-fit: contain;
+        margin-bottom: 15px;
+      }
+      .game-card a {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #ff4081;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: bold;
+        transition: background-color 0.3s;
+      }
+      .game-card a:hover {
+        background-color: #e73370;
       }
     </style>
   </head>
   <body>
-    <!-- QR code generated from an online service -->
-    <img src="https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=https://vineroz-base.github.io/party/number.html" alt="QR Code to Number Page">
+    <h1>🎉 Welcome to the Party Lobby 🎉</h1>
+    <div class="games">
+      <!-- Tap Race -->
+      <div class="game-card">
+        <h2>Tap Race</h2>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://vineroz-base.github.io/party/tap.html" alt="QR Code for Tap Race">
+        <a href="tap.html">Join Tap Race</a>
+      </div>
+
+      <!-- Bingo -->
+      <div class="game-card">
+        <h2>Bingo</h2>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://vineroz-base.github.io/party/bingo.html" alt="QR Code for Bingo">
+        <a href="bingo.html">Join Bingo</a>
+      </div>
+
+      <!-- Lucky Draw -->
+      <div class="game-card">
+        <h2>Lucky Draw</h2>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://vineroz-base.github.io/party/number.html" alt="QR Code for Lucky Draw">
+        <a href="number.html">Join Lucky Draw</a>
+      </div>
+    </div>
   </body>
 </html>
