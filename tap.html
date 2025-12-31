@@ -122,6 +122,17 @@
             localStorage.removeItem("tapRaceUid");
             uid = null;
             playerRef = null;
+            tapCount = 0;
+            playerName = "";
+            hide(playEl); hide(finishedEl);
+            show(joinEl);
+            joinEl.innerHTML = `
+              <label>
+                <span>Name:</span>
+                <input id="nameInput" maxlength="30" />
+              </label>
+              <button id="readyBtn" style="margin-top:20px; font-size:24px;">Ready</button>
+            `;
           }
         });
       }
@@ -133,7 +144,16 @@
         targetTaps = race.targetTaps || 0;
         log("Race stage (guest): "+stage+", targetTaps: "+targetTaps);
       
-        if(stage==="waiting"){
+        if(stage==="idle"){
+          uid = null;
+          playerRef = null;
+          playerName = "";
+          tapCount = 0;
+          localStorage.removeItem("tapRaceUid");
+          hide(joinEl); hide(playEl); hide(finishedEl);
+          show(waitEl);
+        }
+        else if(stage==="waiting"){
           hide(waitEl); hide(playEl); hide(finishedEl);
           if(uid && playerName){
             joinEl.innerHTML = `
