@@ -116,6 +116,7 @@
       onValue(raceRef,(snap)=>{
         const race = snap.val();
         if(!race) return;
+        log("Race stage (guest): "+race.stage+", targetTaps: "+race.targetTaps);
         const stage = race.stage;
       
         if(stage==="waiting"){ show(joinEl); hide(playEl); hide(finishedEl); }
