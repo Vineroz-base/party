@@ -145,7 +145,7 @@
     let targetTaps=0;
 
     // Listen for players joining
-    onValue(playersRef,(snap)=>{
+    onValue(playersRef, (snap) => {
       const players = snap.val() || {};
       const count = Object.keys(players).length;
       playersCount.textContent = "Players joined: " + count;
@@ -154,12 +154,14 @@
         renderChart(players);
     
         // check win condition
-        for (const [id,p] of Object.entries(players)) {
+        for (const [id, p] of Object.entries(players)) {
           if (p.tapCount >= targetTaps) {
-            update(raceRef,{ stage:"finished" });
+            update(raceRef, { stage: "finished" });
             break;
           }
         }
+      } else if (raceStage === "finished") {
+        renderChart(players); // this line throws if players is undefined
       }
     });
 
