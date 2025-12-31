@@ -168,9 +168,11 @@
         chartDiv.innerHTML=""; // clear chart
       } else if(raceStage==="active"){
         hide(idleEl); hide(waitEl); show(raceEl); hide(finishedEl);
+        show(chartDiv);
         renderChart(latestPlayers);
       } else if(raceStage==="finished"){
         hide(idleEl); hide(waitEl); hide(raceEl); show(finishedEl);
+        show(chartDiv);
         renderChart(latestPlayers); // chart persists
         confetti({ particleCount: 200, spread: 80, origin: { y: 0.6 } });
       }
