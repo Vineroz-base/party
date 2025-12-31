@@ -36,15 +36,14 @@
       text-align:right;
     }
     .bar {
-      flex:1;
       border-radius:4px;
       transition:width 0.6s ease-in-out;
       height:24px;
     }
-    .bar:nth-child(4n+1) { background:#00ffff; }
-    .bar:nth-child(4n+2) { background:#ff00ff; }
-    .bar:nth-child(4n+3) { background:#ffff00; }
-    .bar:nth-child(4n+4) { background:#00ff00; }
+    .playerRow:nth-child(4n+1) .bar { background:#00ffff; }
+    .playerRow:nth-child(4n+2) .bar { background:#ff00ff; }
+    .playerRow:nth-child(4n+3) .bar { background:#ffff00; }
+    .playerRow:nth-child(4n+4) .bar { background:#00ff00; }
     .winner {
       background:gold !important;
       color:black !important;
