@@ -115,10 +115,11 @@
         onValue(playerRef,(snap)=>{
           const player = snap.val();
           if(player){
+            console.log("[PLAYER REF] Snapshot received:", player);
             playerName = player.name;
             tapCount = player.tapCount || 0;
-            log("Restored player: "+playerName+", taps="+tapCount);
           } else {
+            console.log("[PLAYER REF] Snapshot is null — resetting state");
             localStorage.removeItem("tapRaceUid");
             uid = null;
             playerRef = null;
@@ -195,13 +196,19 @@
         }
       });
 
-      readyBtn.onclick=()=>{
+      readyBtn.onclick = () => {
         uid = auth.currentUser.uid;
         playerName = nameInput.value.trim() || "Guest";
         playerRef = ref(db,"tapRace/players/"+uid);
-        set(playerRef,{name:playerName,tapCount:0});
+      
+        console.log("[READY] About to set player record:", uid, playerName);
+      
+        set(playerRef,{name:playerName,tapCount:0})
+          .then(() => console.log("[READY] Player record written successfully"))
+          .catch(err => console.log("[READY] Error writing player record:", err));
+      
         localStorage.setItem("tapRaceUid", uid);
-
+      
         joinEl.innerHTML = `
           <div style="font-size:20px; margin-bottom:10px;">Name: <strong>${playerName}</strong></div>
           <div>Waiting for the race to start...</div>
