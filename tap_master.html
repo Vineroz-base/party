@@ -176,7 +176,7 @@
         renderChart(latestPlayers);
         for (const [id, p] of Object.entries(latestPlayers)) {
           if (p.tapCount >= targetTaps) {
-            update(raceRef, { stage: "finished" });
+            update(raceRef, { stage: "finished", winnerId: id, winnerName: p.name });
             break;
           }
         }
