@@ -5,66 +5,25 @@
   <title>TAP RACE Master</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body {
-      font-family: system-ui, sans-serif;
-      margin: 0;
-      background:#111;
-      color:#fff;
-      height:100vh;
-      overflow:hidden;
-      position:relative;
-    }
+    body { font-family: system-ui, sans-serif; margin:0; background:#111; color:#fff; height:100vh; overflow:hidden; }
     .hidden { display:none !important; }
     .center { display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; }
     #playersCount { margin-top:20px; font-size:20px; }
     #chart { width:90%; margin-top:20px; }
     .playerRow { display:flex; align-items:center; margin:4px 0; }
-    .playerName { font-weight:bold; margin-right:10px; width:clamp(80px, 20%, 150px); text-align:right; }
-    .bar {
-      border-radius:4px;
-      transition:width 0.6s ease-in-out;
-      height:24px;
-      position:relative;
-    }
-    /* Blue-green palette */
+    .playerName { font-weight:bold; margin-right:10px; width:clamp(80px,20%,150px); text-align:right; }
+    .bar { border-radius:4px; transition:width 0.6s ease-in-out; height:24px; position:relative; }
     .playerRow:nth-child(6n+1) .bar { background:#006d77; }
     .playerRow:nth-child(6n+2) .bar { background:#009688; }
     .playerRow:nth-child(6n+3) .bar { background:#00b4d8; }
     .playerRow:nth-child(6n+4) .bar { background:#48cae4; }
     .playerRow:nth-child(6n+5) .bar { background:#90e0ef; }
     .playerRow:nth-child(6n+6) .bar { background:#caf0f8; }
-    .winner {
-      background:gold !important;
-      color:black !important;
-      animation:pulse 1s infinite;
-      box-shadow:0 0 12px rgba(255,215,0,0.6);
-    }
-    @keyframes pulse {
-      0% { transform:scale(1); box-shadow:0 0 10px gold; }
-      50% { transform:scale(1.05); box-shadow:0 0 25px gold; }
-      100% { transform:scale(1); box-shadow:0 0 10px gold; }
-    }
-    .finishTime {
-      position:absolute;
-      right:8px;
-      top:2px;
-      font-size:18px;
-      font-weight:bold;
-      color:#fff;
-      text-shadow:0 0 6px #000;
-    }
-    button {
-      margin:10px;
-      padding:10px 20px;
-      font-size:18px;
-      cursor:pointer;
-    }
-    #restartBtn {
-      background:#333;
-      color:#ccc;
-      font-size:16px;
-      padding:8px 16px;
-    }
+    .winner { background:gold !important; color:black !important; animation:pulse 1s infinite; box-shadow:0 0 12px rgba(255,215,0,0.6); }
+    @keyframes pulse { 0%{transform:scale(1);box-shadow:0 0 10px gold;} 50%{transform:scale(1.05);box-shadow:0 0 25px gold;} 100%{transform:scale(1);box-shadow:0 0 10px gold;} }
+    .finishTime { position:absolute; right:8px; top:2px; font-size:18px; font-weight:bold; color:#fff; text-shadow:0 0 6px #000; }
+    button { margin:10px; padding:10px 20px; font-size:18px; cursor:pointer; }
+    #restartBtn { background:#333; color:#ccc; font-size:16px; padding:8px 16px; }
   </style>
 </head>
 <body>
@@ -72,6 +31,8 @@
   <div id="idle" class="center">
     <h1 style="font-size:48px;">TAP RACE</h1>
     <label>Target taps: <input id="targetInput" type="number" value="50" /></label>
+    <label><input type="checkbox" id="botsEnable"> Enable bots</label>
+    <label>Bots: <input id="botsCount" type="number" value="3" min="1" max="20" /></label>
     <button id="createBtn">Create race</button>
   </div>
 
@@ -107,40 +68,17 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getDatabase, ref, set, update, remove, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+    import { getDatabase, ref, set, update, remove, onValue, push } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-    function log(msg){console.log(msg);}
     function show(el){ el.classList.remove('hidden'); }
     function hide(el){ el.classList.add('hidden'); }
 
-    function setStage(stage) {
-      [idleEl, waitEl, countdownEl, raceEl, finishedEl].forEach(el => hide(el));
-      if (stage === "idle") show(idleEl);
-      if (stage === "waiting") show(waitEl);
-      if (stage === "countdown") show(countdownEl);
-      if (stage === "active") show(raceEl);
-      if (stage === "finished") show(finishedEl);
-    }
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyBmj-_hMVfz70jZU67Ugd1aRZodckJUj6A",
-      authDomain: "github-party.firebaseapp.com",
-      databaseURL: "https://github-party-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "github-party",
-      storageBucket: "github-party.firebasestorage.app",
-      messagingSenderId: "301660898316",
-      appId: "1:301660898316:web:aee18e9b10d5cf89239a29",
-      measurementId: "G-1E7L3P0M2Q"
-    };
-
+    const firebaseConfig = { /* your config */ };
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-
     const auth = getAuth(app);
-    signInAnonymously(auth)
-      .then(() => log("Master signed in anonymously"))
-      .catch(err => log("Auth error: "+err));
+    signInAnonymously(auth);
 
     const raceRef = ref(db,"tapRace/currentRace");
     const playersRef = ref(db,"tapRace/players");
@@ -159,6 +97,8 @@
     const qrCanvas=document.getElementById('qrCanvas');
     const winnerBanner=document.getElementById('winnerBanner');
     const countNum=document.getElementById('countNum');
+    const botsEnable=document.getElementById('botsEnable');
+    const botsCount=document.getElementById('botsCount');
 
     const qr = new QRious({ element: qrCanvas, size: 300 });
 
@@ -166,122 +106,57 @@
     let targetTaps=0;
     let latestPlayers = {};
     let confettiFired = false;
+    let countdownInterval=null;
+    let botTimers={};
+    let winnerLocked=false;
 
-    onValue(playersRef, (snap) => {
-      latestPlayers = snap.val() || {};
-      const count = Object.keys(latestPlayers).length;
-      playersCount.textContent = "Players joined: " + count;
-    
-      if (raceStage === "active") {
-        renderChart(latestPlayers);
-        for (const [id, p] of Object.entries(latestPlayers)) {
-          if (p.tapCount >= targetTaps) {
-            update(raceRef, { stage: "finished", winnerId: id, winnerName: p.name });
-            break;
-          }
-        }
-      } else if (raceStage === "finished") {
-        renderChart(latestPlayers);
-      }
-    });
-
-    onValue(raceRef,(snap)=>{
-      const race = snap.val();
-      if(!race){
-        set(raceRef,{stage:"idle"});
-        remove(playersRef);
-        return;
-      }
-    
-      raceStage = race.stage;
-      targetTaps = race.targetTaps || 0;
-      log("Race stage: "+raceStage+", targetTaps: "+targetTaps);
-    
-      if(raceStage==="idle"){
-        setStage("idle");
-        clearCharts();
-        winnerBanner.textContent="";
-        confettiFired = false;
-      } 
-      else if(raceStage==="waiting"){
-        setStage("waiting");
-        qr.value = `${window.location.origin}/tap.html`;
-        clearCharts();
-      } 
-      else if(raceStage==="countdown"){
-        setStage("countdown");
-        let count = 10;
-        const interval = setInterval(() => {
-          countNum.textContent = count;
-          if(count <= 0){
-            clearInterval(interval);
-            update(raceRef,{stage:"active"});
-          }
-          count--;
-        },1000);
-      } 
-      else if(raceStage==="active"){
-        setStage("active");
-        renderChart(latestPlayers);
-      } 
-      else if(raceStage==="finished"){
-        setStage("finished");
-        renderChart(latestPlayers);
-        if (!confettiFired) {
-          confettiFired = true;
-          confetti({ particleCount: 200, spread: 80, origin: { y: 0.6 } });
-        }
-      }
-    });
-
-    function clearCharts(){
-      chartDivs.forEach(div => div.innerHTML="");
+    function setStage(stage){
+      [idleEl,waitEl,countdownEl,raceEl,finishedEl].forEach(el=>hide(el));
+      winnerBanner.textContent="";
+      confettiFired=false;
+      if(stage==="idle") show(idleEl);
+      if(stage==="waiting") show(waitEl);
+      if(stage==="countdown") show(countdownEl);
+      if(stage==="active") show(raceEl);
+      if(stage==="finished") show(finishedEl);
     }
 
+    function clearCharts(){ chartDivs.forEach(div=>div.innerHTML=""); }
+
     function renderChart(players){
-      chartDivs.forEach(div => {
+      chartDivs.forEach(div=>{
         div.innerHTML="";
-        const entries = Object.entries(players);
-        const sorted = entries
-          .map(([id, p]) => ({ id, ...p }))
-          .sort((a,b)=>b.tapCount-a.tapCount);
-
-        const finishers = sorted.filter(p => p.tapCount >= targetTaps && p.finishTime);
-        let fastest = null;
-        if (finishers.length > 0) {
-          fastest = finishers.reduce((min, p) => p.finishTime < min.finishTime ? p : min, finishers[0]);
-          winnerBanner.textContent = "🏆 Winner: " + fastest.name;
+        const entries=Object.entries(players).map(([id,p])=>({id,...p}));
+        const sorted=entries.sort((a,b)=>b.tapCount-a.tapCount);
+        const finishers=sorted.filter(p=>p.tapCount>=targetTaps && p.finishTime);
+        let fastest=null;
+        if(finishers.length>0){
+          fastest=finishers.reduce((min,p)=>p.finishTime<min.finishTime?p:min,finishers[0]);
+          winnerBanner.textContent="🏆 Winner: "+fastest.name;
         }
-
         sorted.forEach(p=>{
           const row=document.createElement('div');
           row.className="playerRow";
-
           const nameSpan=document.createElement('span');
           nameSpan.className="playerName";
           nameSpan.textContent=p.name;
-
           const bar=document.createElement('div');
           bar.className="bar";
-          const progress=Math.min(100,(targetTaps ? (p.tapCount/targetTaps)*100 : 0));
+          const progress=Math.min(100,(targetTaps?(p.tapCount/targetTaps)*100:0));
           bar.style.width=progress+"%";
-
           const countSpan=document.createElement('span');
           countSpan.style.marginLeft="10px";
           countSpan.textContent=p.tapCount;
-
-          if (p.tapCount >= targetTaps && p.finishTime) {
+          if(p.finishTime && raceStage==="finished" && race.startTime){
+            const duration=(p.finishTime-race.startTime)/1000;
             const timeSpan=document.createElement('span');
-            const ft = new Date(p.finishTime);
             timeSpan.className="finishTime";
-            timeSpan.textContent = ft.toLocaleTimeString("en-GB",{hour12:false}) + "." + ft.getMilliseconds().toString().padStart(3,"0");
+            timeSpan.textContent = duration.toFixed(2) + "s";
             bar.appendChild(timeSpan);
           }
-
-          if (fastest && p.id === fastest.id) {
+          if(fastest && p.id===fastest.id){
             bar.classList.add("winner");
           }
-
           row.appendChild(nameSpan);
           row.appendChild(bar);
           row.appendChild(countSpan);
@@ -290,26 +165,116 @@
       });
     }
 
+    // --- Race control buttons ---
     createBtn.onclick=()=>{
-      set(raceRef,{stage:"waiting",targetTaps:parseInt(targetInput.value)||50})
-        .then(()=>log("Race created, waiting stage"))
-        .catch(err=>log("Error creating race: "+err));
+      set(raceRef,{stage:"waiting",targetTaps:parseInt(targetInput.value)||50,startTime:null,winnerId:null,winnerName:null});
       remove(playersRef);
     };
 
     startBtn.onclick=()=>{
       const target=parseInt(targetInput.value)||50;
-      update(raceRef,{stage:"countdown",targetTaps:target})
-        .then(()=>log("Countdown started"))
-        .catch(err=>log("Error starting countdown: "+err));
+      update(raceRef,{stage:"countdown",targetTaps:target});
     };
 
     restartBtn.onclick=()=>{
-      set(raceRef,{stage:"idle"})
-        .then(()=>log("Race reset to idle"))
-        .catch(err=>log("Error resetting race: "+err));
+      set(raceRef,{stage:"idle",startTime:null,winnerId:null,winnerName:null});
       remove(playersRef);
     };
+
+    // --- Firebase listeners ---
+    onValue(playersRef,(snap)=>{
+      latestPlayers=snap.val()||{};
+      const count=Object.keys(latestPlayers).length;
+      playersCount.textContent="Players joined: "+count;
+
+      if(raceStage==="active"){
+        renderChart(latestPlayers);
+        // Centralized finish stamping
+        for(const [id,p] of Object.entries(latestPlayers)){
+          if(p.tapCount>=targetTaps && !p.finishTime){
+            update(ref(db,"tapRace/players/"+id),{finishTime:Date.now()});
+            if(!winnerLocked){
+              winnerLocked=true;
+              update(raceRef,{stage:"finished",winnerId:id,winnerName:p.name});
+            }
+          }
+        }
+      } else if(raceStage==="finished"){
+        renderChart(latestPlayers);
+      }
+    });
+
+    onValue(raceRef,(snap)=>{
+      const race=snap.val();
+      if(!race){
+        set(raceRef,{stage:"idle"});
+        remove(playersRef);
+        return;
+      }
+      raceStage=race.stage;
+      targetTaps=race.targetTaps||0;
+
+      if(raceStage==="idle"){
+        setStage("idle");
+        clearCharts();
+      }
+      else if(raceStage==="waiting"){
+        setStage("waiting");
+        qr.value=`${window.location.origin}/tap.html`;
+        clearCharts();
+      }
+      else if(raceStage==="countdown"){
+        setStage("countdown");
+        let count=10;
+        countNum.textContent=count;
+        countdownInterval=setInterval(()=>{
+          count--;
+          if(count<=0){
+            clearInterval(countdownInterval);
+            countdownInterval=null;
+            update(raceRef,{stage:"active",startTime:Date.now()});
+            // start bots if enabled
+            if(botsEnable.checked){
+              const n=Math.max(1,Math.min(20,parseInt(botsCount.value)||1));
+              for(let i=1;i<=n;i++){
+                const botKey=push(playersRef).key;
+                set(ref(db,"tapRace/players/"+botKey),{name:"Bot "+i,tapCount:0});
+                simulateBot(botKey);
+              }
+            }
+          } else {
+            countNum.textContent=count;
+          }
+        },1000);
+      }
+      else if(raceStage==="active"){
+        setStage("active");
+        renderChart(latestPlayers);
+      }
+      else if(raceStage==="finished"){
+        setStage("finished");
+        renderChart(latestPlayers);
+        if(!confettiFired){
+          confettiFired=true;
+          confetti({particleCount:200,spread:80,origin:{y:0.6}});
+        }
+      }
+    });
+
+    // --- Bot simulation ---
+    function simulateBot(botKey){
+      const avg=450+Math.random()*150; // 450–600ms
+      const jitter=180;
+      function step(){
+        if(raceStage!=="active"){return;}
+        const p=latestPlayers[botKey]||{tapCount:0};
+        if(p.tapCount>=targetTaps){return;}
+        update(ref(db,"tapRace/players/"+botKey),{tapCount:p.tapCount+1});
+        const delay=Math.max(260,Math.min(800,avg+(Math.random()*2-1)*jitter));
+        setTimeout(step,delay);
+      }
+      step();
+    }
   </script>
 </body>
 </html>
