@@ -24,6 +24,7 @@
       border-radius:4px;
       transition:width 0.6s ease-in-out;
       height:24px;
+      position:relative;
     }
     /* Blue-green palette */
     .playerRow:nth-child(6n+1) .bar { background:#006d77; }
@@ -36,11 +37,21 @@
       background:gold !important;
       color:black !important;
       animation:pulse 1s infinite;
+      box-shadow:0 0 12px rgba(255,215,0,0.6);
     }
     @keyframes pulse {
       0% { transform:scale(1); box-shadow:0 0 10px gold; }
       50% { transform:scale(1.05); box-shadow:0 0 25px gold; }
       100% { transform:scale(1); box-shadow:0 0 10px gold; }
+    }
+    .finishTime {
+      position:absolute;
+      right:8px;
+      top:2px;
+      font-size:18px;
+      font-weight:bold;
+      color:#fff;
+      text-shadow:0 0 6px #000;
     }
     button {
       margin:10px;
@@ -92,11 +103,8 @@
     <button id="restartBtn">Restart game</button>
   </div>
 
-  <!-- QR code generator -->
   <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>
-  <!-- Confetti -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { getDatabase, ref, set, update, remove, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
@@ -168,7 +176,7 @@
         renderChart(latestPlayers);
         for (const [id, p] of Object.entries(latestPlayers)) {
           if (p.tapCount >= targetTaps) {
-            update(raceRef, { stage: "finished", winnerId: id });
+            update(raceRef, { stage: "finished" });
             break;
           }
         }
@@ -233,7 +241,18 @@
     function renderChart(players){
       chartDivs.forEach(div => {
         div.innerHTML="";
-        const sorted = Object.values(players).sort((a,b)=>b.tapCount-a.tapCount);
+        const entries = Object.entries(players);
+        const sorted = entries
+          .map(([id, p]) => ({ id, ...p }))
+          .sort((a,b)=>b.tapCount-a.tapCount);
+
+        const finishers = sorted.filter(p => p.tapCount >= targetTaps && p.finishTime);
+        let fastest = null;
+        if (finishers.length > 0) {
+          fastest = finishers.reduce((min, p) => p.finishTime < min.finishTime ? p : min, finishers[0]);
+          winnerBanner.textContent = "🏆 Winner: " + fastest.name;
+        }
+
         sorted.forEach(p=>{
           const row=document.createElement('div');
           row.className="playerRow";
@@ -244,17 +263,22 @@
 
           const bar=document.createElement('div');
           bar.className="bar";
-          const progress=Math.min(100,(p.tapCount/targetTaps)*100);
+          const progress=Math.min(100,(targetTaps ? (p.tapCount/targetTaps)*100 : 0));
           bar.style.width=progress+"%";
 
-          // Show tap count beside bar
           const countSpan=document.createElement('span');
           countSpan.style.marginLeft="10px";
           countSpan.textContent=p.tapCount;
 
-          if(raceStage==="finished" && race.winnerId && p.id===race.winnerId){
+          if (p.tapCount >= targetTaps && p.finishTime) {
+            const timeSpan=document.createElement('span');
+            timeSpan.className="finishTime";
+            timeSpan.textContent=new Date(p.finishTime).toLocaleTimeString("en-GB",{hour12:false});
+            bar.appendChild(timeSpan);
+          }
+
+          if (fastest && p.id === fastest.id) {
             bar.classList.add("winner");
-            winnerBanner.textContent = "🏆 Winner: " + p.name;
           }
 
           row.appendChild(nameSpan);
