@@ -40,10 +40,12 @@
       transition:width 0.6s ease-in-out;
       height:24px;
     }
-    .playerRow:nth-child(4n+1) .bar { background:#00ffff; }
-    .playerRow:nth-child(4n+2) .bar { background:#ff00ff; }
-    .playerRow:nth-child(4n+3) .bar { background:#ffff00; }
-    .playerRow:nth-child(4n+4) .bar { background:#00ff00; }
+    .playerRow:nth-child(6n+1) .bar { background:#006d77; }
+    .playerRow:nth-child(6n+2) .bar { background:#009688; }
+    .playerRow:nth-child(6n+3) .bar { background:#00b4d8; }
+    .playerRow:nth-child(6n+4) .bar { background:#48cae4; }
+    .playerRow:nth-child(6n+5) .bar { background:#90e0ef; }
+    .playerRow:nth-child(6n+6) .bar { background:#caf0f8; }
     .winner {
       background:gold !important;
       color:black !important;
@@ -65,17 +67,23 @@
 <body>
   <!-- Idle -->
   <div id="idle" class="center">
-    <h2>Tap Race Master</h2>
+    <h1 style="font-size:48px;">TAP RACE</h1>
     <label>Target taps: <input id="targetInput" type="number" value="50" /></label>
     <button id="createBtn">Create race</button>
   </div>
 
   <!-- Waiting -->
   <div id="wait" class="center hidden">
-    <h2>Waiting for players to join...</h2>
-    <canvas id="qrCanvas"></canvas>
+    <h1 style="font-size:48px;">TAP RACE</h1>
+    <p style="font-size:24px; margin:20px;">Scan the QR code to join!</p>
+    <canvas id="qrCanvas" style="width:300px; height:300px;"></canvas>
     <div id="playersCount">Players joined: 0</div>
     <button id="startBtn">Start race</button>
+  </div>
+
+  <!-- Countdown -->
+  <div id="countdown" class="center hidden">
+    <h1 id="countNum" style="font-size:96px;"></h1>
   </div>
 
   <!-- Race -->
@@ -89,7 +97,9 @@
     <h2>Race finished!</h2>
     <div id="winnerBanner" style="font-size:32px; color:gold; margin:20px;"></div>
     <div id="chart"></div>
-    <button id="restartBtn">Restart game</button>
+    <button id="restartBtn" style="background:#333; color:#ccc; font-size:16px; padding:8px 16px;">
+      Restart game
+    </button>
   </div>
 
   <!-- QR code generator -->
@@ -235,11 +245,20 @@
       remove(playersRef);
     };
 
-    startBtn.onclick=()=>{
-      const target=parseInt(targetInput.value)||50;
-      update(raceRef,{stage:"active",targetTaps:target})
-        .then(()=>log("Race started with targetTaps="+target))
-        .catch(err=>log("Error starting race: "+err));
+    const countdownEl = document.getElementById('countdown');
+    const countNum = document.getElementById('countNum');
+    
+    startBtn.onclick = () => {
+      let count = 10;
+      set(raceRef,{stage:"countdown",targetTaps:parseInt(targetInput.value)||50});
+      const interval = setInterval(()=>{
+        countNum.textContent = count;
+        if(count <= 0){
+          clearInterval(interval);
+          update(raceRef,{stage:"active"});
+        }
+        count--;
+      },1000);
     };
 
     restartBtn.onclick=()=>{
