@@ -272,8 +272,9 @@
 
           if (p.tapCount >= targetTaps && p.finishTime) {
             const timeSpan=document.createElement('span');
+            const ft = new Date(p.finishTime);
             timeSpan.className="finishTime";
-            timeSpan.textContent=new Date(p.finishTime).toLocaleTimeString("en-GB",{hour12:false});
+            timeSpan.textContent = ft.toLocaleTimeString("en-GB",{hour12:false}) + "." + ft.getMilliseconds().toString().padStart(3,"0");
             bar.appendChild(timeSpan);
           }
 
