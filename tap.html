@@ -5,12 +5,41 @@
   <title>TAP RACE Guest</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: system-ui, sans-serif; margin:0; background:#111; color:#fff; height:100vh; overflow:hidden; position:relative; }
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      background:#111;
+      color:#fff;
+      height:100vh;
+      overflow:hidden;
+      position:relative;
+    }
     .hidden { display:none; }
     .center { display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; }
-    #tapBtn { position:absolute; width:90px; height:90px; font-size:18px; font-weight:bold; border-radius:50%; background:#00ffff; color:#111; border:none; cursor:pointer; }
-    .winnerBanner { font-size:24px; padding:12px; margin:20px; background:gold; color:black; border-radius:6px; text-align:center; }
-    #countdownNum { font-size:96px; font-weight:bold; }
+    #tapBtn {
+      position:absolute;
+      width:90px; height:90px;
+      font-size:18px;
+      font-weight:bold;
+      border-radius:50%;
+      background:#00ffff;
+      color:#111;
+      border:none;
+      cursor:pointer;
+    }
+    .winnerBanner {
+      font-size:24px;
+      padding:12px;
+      margin:20px;
+      background:gold;
+      color:black;
+      border-radius:6px;
+      text-align:center;
+    }
+    #countdownNum {
+      font-size:96px;
+      font-weight:bold;
+    }
   </style>
 </head>
 <body>
@@ -21,7 +50,10 @@
 
   <div id="join" class="center hidden">
     <h1 style="font-size:48px;">TAP RACE</h1>
-    <label><span>Name:</span><input id="nameInput" maxlength="30" /></label>
+    <label>
+      <span>Name:</span>
+      <input id="nameInput" maxlength="30" />
+    </label>
     <button id="readyBtn" style="margin-top:20px; font-size:24px;">Ready</button>
   </div>
 
@@ -48,7 +80,17 @@
     function show(el){ el.classList.remove('hidden'); el.style.display="flex"; }
     function hide(el){ el.classList.add('hidden'); el.style.display="none"; }
 
-    const firebaseConfig = { /* your config */ };
+    const firebaseConfig = {
+      apiKey: "AIzaSyBmj-_hMVfz70jZU67Ugd1aRZodckJUj6A",
+      authDomain: "github-party.firebaseapp.com",
+      databaseURL: "https://github-party-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "github-party",
+      storageBucket: "github-party.firebasestorage.app",
+      messagingSenderId: "301660898316",
+      appId: "1:301660898316:web:aee18e9b10d5cf89239a29",
+      measurementId: "G-1E7L3P0M2Q"
+    };
+
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const auth = getAuth(app);
@@ -113,13 +155,19 @@
         show(countdownEl);
         let count=10; countdownNum.textContent=count;
         const interval=setInterval(()=>{
-          count--; 
+          count--;
           if(count<=0){ clearInterval(interval); hide(countdownEl); show(playEl); }
           else { countdownNum.textContent=count; }
         },1000);
       }
       else if(stage==="active"){
-        if(!uid||!playerRef){ hide(waitEl); hide(joinEl); hide(playEl); hide(countdownEl); show(finishedEl); finishMessage.textContent="Race in progress."; finishSub.textContent="Wait for next game."; return; }
+        if(!uid||!playerRef){
+          hide(waitEl); hide(joinEl); hide(playEl); hide(countdownEl);
+          show(finishedEl);
+          finishMessage.textContent="Race in progress.";
+          finishSub.textContent="Wait for next game.";
+          return;
+        }
         hide(waitEl); hide(joinEl); hide(finishedEl); hide(countdownEl);
         show(playEl);
         tapBtn.disabled=false;
@@ -130,9 +178,20 @@
       else if(stage==="finished"){
         hide(waitEl); hide(playEl); hide(joinEl); hide(countdownEl);
         show(finishedEl);
-        if(tapCount>=targetTaps){ finishMessage.textContent="🎉 You finished!"; finishSub.textContent="Waiting for results..."; }
-        else { finishMessage.textContent="Race finished."; finishSub.textContent="Wait for new race."; }
-        if(race.winnerName){ finishSub.textContent="Winner: "+race.winnerName; if(playerName===race.winnerName){ winnerBanner.classList.remove("hidden"); confetti({particleCount:200,spread:80,origin:{y:0.6}}); } }
+        if(tapCount>=targetTaps){
+          finishMessage.textContent="🎉 You finished!";
+          finishSub.textContent="Waiting for results...";
+        } else {
+          finishMessage.textContent="Race finished.";
+          finishSub.textContent="Wait for new race.";
+        }
+        if(race.winnerName){
+          finishSub.textContent="Winner: "+race.winnerName;
+          if(playerName===race.winnerName){
+            winnerBanner.classList.remove("hidden");
+            confetti({particleCount:200,spread:80,origin:{y:0.6}});
+          }
+        }
       }
     });
 
@@ -141,18 +200,27 @@
       tapCount++;
       update(ref(db,"tapRace/players/"+uid),{tapCount});
       const remaining=targetTaps-tapCount;
-      if(tapCount>=targetTaps){ tapBtn.textContent="Done!"; tapBtn.disabled=true; }
-      else { tapBtn.textContent=remaining; moveButtonRandom(); }
+      if(tapCount>=targetTaps){
+        tapBtn.textContent="Done!";
+        tapBtn.disabled=true;
+      } else {
+        tapBtn.textContent=remaining;
+        moveButtonRandom();
+      }
     };
 
     function moveButtonRandom(){
-      const btnSize=90, buffer=20;
-      const maxX=window.innerWidth-btnSize-buffer;
-      const maxY=window.innerHeight-btnSize-buffer;
-      const x=buffer+Math.floor(Math.random()*maxX);
-      const y=buffer+Math.floor(Math.random()*maxY);
-      tapBtn.style.left=x+"px"; tapBtn.style.top=y+"px";
+      const btnSize = 90;
+      const buffer = 20; // margin so button doesn't clip off-screen
+      const maxX = window.innerWidth - btnSize - buffer;
+      const maxY = window.innerHeight - btnSize - buffer;
+      const x = buffer + Math.floor(Math.random() * maxX);
+      const y = buffer + Math.floor(Math.random() * maxY);
+      tapBtn.style.left = x + "px";
+      tapBtn.style.top = y + "px";
     }
+
+    // Initial placement
     moveButtonRandom();
   </script>
 </body>
