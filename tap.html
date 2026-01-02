@@ -5,41 +5,12 @@
   <title>TAP RACE Guest</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body {
-      font-family: system-ui, sans-serif;
-      margin: 0;
-      background:#111;
-      color:#fff;
-      height:100vh;
-      overflow:hidden;
-      position:relative;
-    }
+    body { font-family: system-ui, sans-serif; margin:0; background:#111; color:#fff; height:100vh; overflow:hidden; position:relative; }
     .hidden { display:none; }
     .center { display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; }
-    #tapBtn {
-      position:absolute;
-      width:90px; height:90px;
-      font-size:18px;
-      font-weight:bold;
-      border-radius:50%;
-      background:#00ffff;
-      color:#111;
-      border:none;
-      cursor:pointer;
-    }
-    .winnerBanner {
-      font-size:24px;
-      padding:12px;
-      margin:20px;
-      background:gold;
-      color:black;
-      border-radius:6px;
-      text-align:center;
-    }
-    #countdownNum {
-      font-size:96px;
-      font-weight:bold;
-    }
+    #tapBtn { position:absolute; width:90px; height:90px; font-size:18px; font-weight:bold; border-radius:50%; background:#00ffff; color:#111; border:none; cursor:pointer; }
+    .winnerBanner { font-size:24px; padding:12px; margin:20px; background:gold; color:black; border-radius:6px; text-align:center; }
+    #countdownNum { font-size:96px; font-weight:bold; }
   </style>
 </head>
 <body>
@@ -50,10 +21,7 @@
 
   <div id="join" class="center hidden">
     <h1 style="font-size:48px;">TAP RACE</h1>
-    <label>
-      <span>Name:</span>
-      <input id="nameInput" maxlength="30" />
-    </label>
+    <label><span>Name:</span><input id="nameInput" maxlength="30" /></label>
     <button id="readyBtn" style="margin-top:20px; font-size:24px;">Ready</button>
   </div>
 
@@ -72,254 +40,120 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { getDatabase, ref, set, update, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-    function log(msg){ console.log(msg); }
     function show(el){ el.classList.remove('hidden'); el.style.display="flex"; }
     function hide(el){ el.classList.add('hidden'); el.style.display="none"; }
 
-    async function init() {
-      const firebaseConfig = {
-        apiKey: "AIzaSyBmj-_hMVfz70jZU67Ugd1aRZodckJUj6A",
-        authDomain: "github-party.firebaseapp.com",
-        databaseURL: "https://github-party-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "github-party",
-        storageBucket: "github-party.firebasestorage.app",
-        messagingSenderId: "301660898316",
-        appId: "1:301660898316:web:aee18e9b10d5cf89239a29",
-        measurementId: "G-1E7L3P0M2Q"
+    const firebaseConfig = { /* your config */ };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+    await signInAnonymously(auth);
+
+    const waitEl=document.getElementById('wait');
+    const joinEl=document.getElementById('join');
+    const countdownEl=document.getElementById('countdown');
+    const countdownNum=document.getElementById('countdownNum');
+    const playEl=document.getElementById('play');
+    const finishedEl=document.getElementById('finished');
+    const finishMessage=document.getElementById('finishMessage');
+    const finishSub=document.getElementById('finishSub');
+    const tapBtn=document.getElementById('tapBtn');
+    const winnerBanner=document.getElementById('winnerBanner');
+
+    let playerRef=null, raceRef=ref(db,"tapRace/currentRace");
+    let targetTaps=0, tapCount=0;
+    let playerName="", uid=null;
+    let joining=false;
+
+    function bindJoinForm(){
+      const nameInput=document.getElementById('nameInput');
+      const readyBtn=document.getElementById('readyBtn');
+      readyBtn.onclick=()=>{
+        uid=auth.currentUser.uid;
+        playerName=nameInput.value.trim()||"Guest";
+        playerRef=ref(db,"tapRace/players/"+uid);
+        joining=true;
+        set(playerRef,{name:playerName,tapCount:0});
+        localStorage.setItem("tapRaceUid",uid);
+        joinEl.innerHTML=`<h1 style="font-size:48px;">TAP RACE</h1>
+          <div style="font-size:20px; margin-bottom:10px;">Name: <strong>${playerName}</strong></div>
+          <div>Waiting for the race to start...</div>`;
+        hide(waitEl); show(joinEl); hide(playEl);
       };
-
-      const app = initializeApp(firebaseConfig);
-      const db = getDatabase(app);
-      const auth = getAuth(app);
-
-      try {
-        await signInAnonymously(auth);
-        log("Signed in anonymously, UID: " + auth.currentUser.uid);
-      } catch(err) {
-        log("Auth error: " + err);
-      }
-
-      const waitEl = document.getElementById('wait');
-      const joinEl = document.getElementById('join');
-      const countdownEl = document.getElementById('countdown');
-      const countdownNum = document.getElementById('countdownNum');
-      const playEl = document.getElementById('play');
-      const finishedEl = document.getElementById('finished');
-      const finishMessage = document.getElementById('finishMessage');
-      const finishSub = document.getElementById('finishSub');
-      const tapBtn = document.getElementById('tapBtn');
-      const winnerBanner = document.getElementById('winnerBanner');
-
-      let playerRef=null, raceRef=ref(db,"tapRace/currentRace");
-      let targetTaps=0, tapCount=0;
-      let playerName="", uid=null;
-      let joining=false;
-      let finishTimeRecorded=false;
-
-      function bindJoinForm(){
-        const nameInput = document.getElementById('nameInput');
-        const readyBtn = document.getElementById('readyBtn');
-        readyBtn.onclick = () => {
-          uid = auth.currentUser.uid;
-          playerName = nameInput.value.trim() || "Guest";
-          playerRef = ref(db,"tapRace/players/"+uid);
-          joining=true;
-
-          set(playerRef,{name:playerName,tapCount:0})
-            .then(() => {
-              onValue(playerRef,(snap)=>{
-                const player = snap.val();
-                if(player){
-                  playerName = player.name;
-                  tapCount = player.tapCount || 0;
-                  joining=false;
-                } else if(!joining){
-                  localStorage.removeItem("tapRaceUid");
-                  uid = null;
-                  playerRef = null;
-                  tapCount = 0;
-                  playerName = "";
-                  hide(playEl); hide(finishedEl);
-                  show(joinEl);
-                  joinEl.innerHTML = `
-                    <h1 style="font-size:48px;">TAP RACE</h1>
-                    <label>
-                      <span>Name:</span>
-                      <input id="nameInput" maxlength="30" />
-                    </label>
-                    <button id="readyBtn" style="margin-top:20px; font-size:24px;">Ready</button>
-                  `;
-                  bindJoinForm();
-                }
-              });
-            })
-            .catch(err => console.log("[READY] Error writing player record:", err));
-
-          localStorage.setItem("tapRaceUid", uid);
-
-          joinEl.innerHTML = `
-            <h1 style="font-size:48px;">TAP RACE</h1>
-            <div style="font-size:20px; margin-bottom:10px;">Name: <strong>${playerName}</strong></div>
-            <div>Waiting for the race to start...</div>
-          `;
-          hide(waitEl); show(joinEl); hide(playEl);
-        };
-      }
-
-      bindJoinForm();
-
-      const savedUid = localStorage.getItem("tapRaceUid");
-      if (savedUid) {
-        uid = savedUid;
-        playerRef = ref(db,"tapRace/players/"+uid);
-        onValue(playerRef,(snap)=>{
-          const player = snap.val();
-          if(player){
-            playerName = player.name;
-            tapCount = player.tapCount || 0;
-          } else {
-            localStorage.removeItem("tapRaceUid");
-            uid = null;
-            playerRef = null;
-            tapCount = 0;
-            playerName = "";
-            hide(playEl); hide(finishedEl);
-            show(joinEl);
-            joinEl.innerHTML = `
-              <h1 style="font-size:48px;">TAP RACE</h1>
-              <label>
-                <span>Name:</span>
-                <input id="nameInput" maxlength="30" />
-              </label>
-              <button id="readyBtn" style="margin-top:20px; font-size:24px;">Ready</button>
-            `;
-            bindJoinForm();
-          }
-        });
-      }
-
-      onValue(raceRef,(snap)=>{
-        const race = snap.val();
-        if(!race) return;
-        const stage = race.stage;
-        targetTaps = race.targetTaps || 0;
-        log("Race stage (guest): "+stage+", targetTaps: "+targetTaps);
-      
-        if(stage==="idle"){
-          uid = null;
-          playerRef = null;
-          playerName = "";
-          tapCount = 0;
-          finishTimeRecorded=false;
-          localStorage.removeItem("tapRaceUid");
-          hide(joinEl); hide(playEl); hide(finishedEl); hide(countdownEl);
-          show(waitEl);
-        }
-        else if(stage==="waiting"){
-          hide(waitEl); hide(playEl); hide(finishedEl); hide(countdownEl);
-          if(uid && playerName){
-            joinEl.innerHTML = `
-              <h1 style="font-size:48px;">TAP RACE</h1>
-              <div style="font-size:20px; margin-bottom:10px;">Name: <strong>${playerName}</strong></div>
-              <div>Waiting for the race to start...</div>
-            `;
-            show(joinEl);
-          } else {
-            show(joinEl);
-          }
-        }
-        else if(stage==="countdown"){
-          hide(waitEl); hide(joinEl); hide(playEl); hide(finishedEl);
-          show(countdownEl);
-          let count = 10;
-          const interval = setInterval(() => {
-            countdownNum.textContent = count;
-            if(count <= 0){
-              clearInterval(interval);
-              hide(countdownEl);
-              show(playEl);
-            }
-            count--;
-          },1000);
-        }
-        else if(stage==="active"){
-          if(!uid || !playerRef){
-            hide(waitEl); hide(joinEl); hide(playEl); hide(countdownEl);
-            show(finishedEl);
-            finishMessage.textContent = "Race is in progress.";
-            finishSub.textContent = "Please wait for the next game to start.";
-            return;
-          }
-          hide(waitEl); hide(joinEl); hide(finishedEl); hide(countdownEl);
-          show(playEl);
-          tapBtn.disabled = false;
-          const remaining = targetTaps - tapCount;
-          tapBtn.textContent = remaining > 0 ? remaining : "Done!";
-          if(tapCount >= targetTaps){
-            tapBtn.disabled = true;
-          } else {
-            moveButtonRandom();
-          }
-        }
-        else if(stage==="finished"){
-          hide(waitEl); hide(playEl); hide(joinEl); hide(countdownEl);
-          show(finishedEl);      
-          if(tapCount >= targetTaps){
-            finishMessage.textContent = "🎉 You finished!";
-            finishSub.textContent = "Waiting for results...";
-          } else {
-            finishMessage.textContent = "The race is now finished.";
-            finishSub.textContent = "Please wait for a new race to start.";
-          }
-          if(race.winnerName){
-            finishSub.textContent = "Winner: " + race.winnerName;
-            if(playerName === race.winnerName){
-              winnerBanner.classList.remove("hidden");
-              confetti({ particleCount: 200, spread: 80, origin: { y: 0.6 } });
-            }
-          }
-        }
-      });
-
-      tapBtn.onclick = () => {
-        if (tapCount >= targetTaps) return;
-        tapCount++;
-        if (tapCount >= targetTaps && !finishTimeRecorded) {
-          finishTimeRecorded = true;
-          update(ref(db,"tapRace/players/"+uid),{ tapCount, finishTime: Date.now() });
-        } else {
-          update(ref(db,"tapRace/players/"+uid),{ tapCount });
-        }
-        const remaining = targetTaps - tapCount;
-        if (tapCount >= targetTaps) {
-          tapBtn.textContent = "Done!";
-          tapBtn.disabled = true;
-        } else {
-          tapBtn.textContent = remaining;
-          moveButtonRandom();
-        }
-      };
-
-      function moveButtonRandom(){
-        const btnSize=90;
-        const maxX=window.innerWidth-btnSize;
-        const maxY=window.innerHeight-btnSize;
-        const x=Math.floor(Math.random()*maxX);
-        const y=Math.floor(Math.random()*maxY);
-        tapBtn.style.left=x+"px";
-        tapBtn.style.top=y+"px";
-      }
-
-      moveButtonRandom();
     }
+    bindJoinForm();
 
-    init();
+    const savedUid=localStorage.getItem("tapRaceUid");
+    if(savedUid){ uid=savedUid; playerRef=ref(db,"tapRace/players/"+uid); }
+
+    onValue(raceRef,(snap)=>{
+      const race=snap.val(); if(!race) return;
+      const stage=race.stage; targetTaps=race.targetTaps||0;
+
+      // Reset banner each stage
+      winnerBanner.classList.add("hidden");
+
+      if(stage==="idle"){
+        uid=null; playerRef=null; playerName=""; tapCount=0;
+        localStorage.removeItem("tapRaceUid");
+        hide(joinEl); hide(playEl); hide(finishedEl); hide(countdownEl);
+        show(waitEl);
+      }
+      else if(stage==="waiting"){
+        hide(waitEl); hide(playEl); hide(finishedEl); hide(countdownEl);
+        show(joinEl);
+      }
+      else if(stage==="countdown"){
+        hide(waitEl); hide(joinEl); hide(playEl); hide(finishedEl);
+        show(countdownEl);
+        let count=10; countdownNum.textContent=count;
+        const interval=setInterval(()=>{
+          count--; 
+          if(count<=0){ clearInterval(interval); hide(countdownEl); show(playEl); }
+          else { countdownNum.textContent=count; }
+        },1000);
+      }
+      else if(stage==="active"){
+        if(!uid||!playerRef){ hide(waitEl); hide(joinEl); hide(playEl); hide(countdownEl); show(finishedEl); finishMessage.textContent="Race in progress."; finishSub.textContent="Wait for next game."; return; }
+        hide(waitEl); hide(joinEl); hide(finishedEl); hide(countdownEl);
+        show(playEl);
+        tapBtn.disabled=false;
+        const remaining=targetTaps-tapCount;
+        tapBtn.textContent=remaining>0?remaining:"Done!";
+        if(tapCount>=targetTaps){ tapBtn.disabled=true; } else { moveButtonRandom(); }
+      }
+      else if(stage==="finished"){
+        hide(waitEl); hide(playEl); hide(joinEl); hide(countdownEl);
+        show(finishedEl);
+        if(tapCount>=targetTaps){ finishMessage.textContent="🎉 You finished!"; finishSub.textContent="Waiting for results..."; }
+        else { finishMessage.textContent="Race finished."; finishSub.textContent="Wait for new race."; }
+        if(race.winnerName){ finishSub.textContent="Winner: "+race.winnerName; if(playerName===race.winnerName){ winnerBanner.classList.remove("hidden"); confetti({particleCount:200,spread:80,origin:{y:0.6}}); } }
+      }
+    });
+
+    tapBtn.onclick=()=>{
+      if(tapCount>=targetTaps) return;
+      tapCount++;
+      update(ref(db,"tapRace/players/"+uid),{tapCount});
+      const remaining=targetTaps-tapCount;
+      if(tapCount>=targetTaps){ tapBtn.textContent="Done!"; tapBtn.disabled=true; }
+      else { tapBtn.textContent=remaining; moveButtonRandom(); }
+    };
+
+    function moveButtonRandom(){
+      const btnSize=90, buffer=20;
+      const maxX=window.innerWidth-btnSize-buffer;
+      const maxY=window.innerHeight-btnSize-buffer;
+      const x=buffer+Math.floor(Math.random()*maxX);
+      const y=buffer+Math.floor(Math.random()*maxY);
+      tapBtn.style.left=x+"px"; tapBtn.style.top=y+"px";
+    }
+    moveButtonRandom();
   </script>
 </body>
 </html>
