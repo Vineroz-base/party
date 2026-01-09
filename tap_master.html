@@ -235,10 +235,10 @@
       
         window.countdownInterval = setInterval(() => {
           count--;
-          if (count >= 0) {
+          if (count > 0) {
             countNum.textContent = count;
           }
-          if (count < 0) {
+          else {
             clearInterval(window.countdownInterval);
             update(raceRef, { stage: "active" });
           }
