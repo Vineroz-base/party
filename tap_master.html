@@ -233,11 +233,16 @@
         winnerBanner.textContent="";
         confettiFired = false;
       } 
-      else if(raceStage==="waiting"){
+      else if (raceStage === "waiting") {
         setStage("waiting");
-        qr.value = `${window.location.origin}/party/tap.html`;
+        qr.value = `${window.location.origin}/tap.html`;
         clearCharts();
-      } 
+        winnerBanner.textContent = "";
+        confettiFired = false;
+      
+        // reset timing values so no old durations show
+        raceStartTime = null;
+      }
       else if (raceStage === "countdown") {
         setStage("countdown");
         
