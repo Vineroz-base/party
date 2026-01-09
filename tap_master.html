@@ -71,13 +71,13 @@
   <!-- Idle -->
   <div id="idle" class="center">
     <h1 style="font-size:72px;">TAP RACE</h1>
-    <label>Target taps: <input id="targetInput" type="number" value="50" /></label>
+    <label>Target: <input id="targetInput" type="number" value="50" /></label>
     <button id="createBtn">Create race</button>
   </div>
 
   <!-- Waiting -->
   <div id="wait" class="center hidden">
-    <h1 style="font-size:72x;">Are you ready?</h1>
+    <h1 style="font-size:108px;">Are you ready?</h1>
     <canvas id="qrCanvas" style="width:300px; height:300px;"></canvas>
     <div id="playersCount">Joined: 0</div>
     <button id="startBtn">Start</button>
@@ -170,7 +170,7 @@
     onValue(playersRef, (snap) => {
       latestPlayers = snap.val() || {};
       const count = Object.keys(latestPlayers).length;
-      playersCount.textContent = "Players joined: " + count;
+      playersCount.textContent = "Joined: " + count;
     
       if (raceStage === "active") {
         if (!raceStartTime) {
