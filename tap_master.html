@@ -36,7 +36,6 @@
     .winner {
       background:gold !important;
       color:black !important;
-      animation:pulse 1s infinite;
       box-shadow:0 0 12px rgba(255,215,0,0.6);
     }
     @keyframes pulse {
@@ -198,6 +197,13 @@
     
         for (const [id, p] of Object.entries(latestPlayers)) {
           if (p.tapCount >= targetTaps) {
+            // record finishDuration once per player
+            if (!p.finishDuration) {
+              const duration = Date.now() - raceStartTime;
+              update(ref(db, "tapRace/players/" + id), { finishDuration: duration });
+            }
+    
+            // declare winner only once
             if (raceStage !== "finished") {
               const duration = Date.now() - raceStartTime;
               update(raceRef, {
@@ -317,7 +323,7 @@
           const progress = Math.min(100, (targetTaps ? (p.tapCount / targetTaps) * 100 : 0));
           bar.style.width = progress + "%";
     
-          if (raceStage === "finished" && p.tapCount >= targetTaps) {
+          if (raceStage === "finished" && p.finishDuration) {
             // Show name + time centered inside bar
             const centerSpan = document.createElement('span');
             centerSpan.style.position = "absolute";
@@ -325,16 +331,14 @@
             centerSpan.style.top = "50%";
             centerSpan.style.transform = "translate(-50%, -50%)";
             centerSpan.style.fontWeight = "bold";
-            centerSpan.style.color = "#000"; // contrast against light bar colors
+            centerSpan.style.color = "#000";
     
-            // Winner gets declared fastest
             if (fastest && p.id === fastest.id && winnerDuration) {
               centerSpan.textContent = p.name + " - " + (winnerDuration / 1000).toFixed(2) + "s";
               bar.style.background = "gold"; // winner bar color
+              bar.style.boxShadow = "0 0 12px rgba(255,215,0,0.6)";
             } else {
-              // Other finishers: calculate their own duration
-              const duration = Date.now() - raceStartTime;
-              centerSpan.textContent = p.name + " - " + (duration / 1000).toFixed(2) + "s";
+              centerSpan.textContent = p.name + " - " + (p.finishDuration / 1000).toFixed(2) + "s";
             }
     
             bar.appendChild(centerSpan);
