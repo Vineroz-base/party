@@ -170,7 +170,7 @@
     onValue(playersRef, (snap) => {
       latestPlayers = snap.val() || {};
       const count = Object.keys(latestPlayers).length;
-      playersCount.textContent = "Players joined: " + count;
+      playersCount.textContent = "Joined: " + count;
       
       if (raceStage === "active") {
         // mark race start time once
