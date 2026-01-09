@@ -54,10 +54,27 @@
       text-shadow:0 0 6px #000;
     }
     button {
-      margin:10px;
-      padding:10px 20px;
-      font-size:18px;
-      cursor:pointer;
+      margin: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      border: 1px solid #555;
+      border-radius: 6px;
+      background: #222;
+      color: #ccc;
+      transition: background 0.3s, color 0.3s;
+    }
+    button:hover {
+      background: #333;
+      color: #fff;
+    }
+    
+    #startBtn {
+      margin-top: 40px; /* push it further down from QR code */
+      background: #222;
+      color: #bbb;
+      font-size: 18px;
+      padding: 10px 24px;
     }
     #restartBtn {
       background:#333;
