@@ -70,23 +70,22 @@
 <body>
   <!-- Idle -->
   <div id="idle" class="center">
-    <h1 style="font-size:48px;">TAP RACE</h1>
+    <h1 style="font-size:72px;">TAP RACE</h1>
     <label>Target taps: <input id="targetInput" type="number" value="50" /></label>
     <button id="createBtn">Create race</button>
   </div>
 
   <!-- Waiting -->
   <div id="wait" class="center hidden">
-    <h1 style="font-size:48px;">TAP RACE</h1>
-    <p style="font-size:24px; margin:20px;">Scan the QR code to join!</p>
+    <h1 style="font-size:72x;">Are you ready?</h1>
     <canvas id="qrCanvas" style="width:300px; height:300px;"></canvas>
-    <div id="playersCount">Players joined: 0</div>
-    <button id="startBtn">Start race</button>
+    <div id="playersCount">Joined: 0</div>
+    <button id="startBtn">Start</button>
   </div>
 
   <!-- Countdown -->
   <div id="countdown" class="center hidden">
-    <h1 id="countNum" style="font-size:96px;"></h1>
+    <h1 id="countNum" style="font-size:108px;"></h1>
   </div>
 
   <!-- Race -->
@@ -166,21 +165,37 @@
     let targetTaps=0;
     let latestPlayers = {};
     let confettiFired = false;
-
+    let raceStartTime = null;
+    
     onValue(playersRef, (snap) => {
       latestPlayers = snap.val() || {};
       const count = Object.keys(latestPlayers).length;
       playersCount.textContent = "Players joined: " + count;
-    
+      
       if (raceStage === "active") {
+        // mark race start time once
+        if (!raceStartTime) {
+          raceStartTime = Date.now();
+        }
+        
         renderChart(latestPlayers);
+        
         for (const [id, p] of Object.entries(latestPlayers)) {
           if (p.tapCount >= targetTaps) {
-            update(raceRef, { stage: "finished", winnerId: id, winnerName: p.name });
+            // only declare winner if not already finished
+            if (raceStage !== "finished") {
+              const duration = Date.now() - raceStartTime;
+              update(raceRef, {
+                stage: "finished",
+                winnerId: id,
+                winnerName: p.name,
+                winnerDuration: duration });
+            }
             break;
           }
         }
-      } else if (raceStage === "finished") {
+      }
+      else if (raceStage === "finished") {
         renderChart(latestPlayers);
       }
     });
@@ -205,23 +220,35 @@
       } 
       else if(raceStage==="waiting"){
         setStage("waiting");
-        qr.value = `${window.location.origin}/tap.html`;
+        qr.value = `${window.location.origin}/party/tap.html`;
         clearCharts();
       } 
-      else if(raceStage==="countdown"){
+      else if (raceStage === "countdown") {
         setStage("countdown");
-        let count = 10;
-        const interval = setInterval(() => {
-          countNum.textContent = count;
-          if(count <= 0){
-            clearInterval(interval);
-            update(raceRef,{stage:"active"});
-          }
+        
+        // Reset label immediately
+        let count = 5;
+        countNum.textContent = count;
+      
+        // Clear any previous interval if it exists
+        if (window.countdownInterval) {
+          clearInterval(window.countdownInterval);
+        }
+      
+        window.countdownInterval = setInterval(() => {
           count--;
-        },1000);
-      } 
+          if (count >= 0) {
+            countNum.textContent = count;
+          }
+          if (count < 0) {
+            clearInterval(window.countdownInterval);
+            update(raceRef, { stage: "active" });
+          }
+        }, 1000);
+      }
       else if(raceStage==="active"){
         setStage("active");
+        if (!raceStartTime) { raceStartTime = Date.now(); } // mark start
         renderChart(latestPlayers);
       } 
       else if(raceStage==="finished"){
@@ -238,50 +265,54 @@
       chartDivs.forEach(div => div.innerHTML="");
     }
 
-    function renderChart(players){
+    function renderChart(players) {
       chartDivs.forEach(div => {
-        div.innerHTML="";
+        div.innerHTML = "";
         const entries = Object.entries(players);
         const sorted = entries
           .map(([id, p]) => ({ id, ...p }))
-          .sort((a,b)=>b.tapCount-a.tapCount);
-
-        const finishers = sorted.filter(p => p.tapCount >= targetTaps && p.finishTime);
+          .sort((a, b) => b.tapCount - a.tapCount);
+    
+        // find fastest finisher based on winnerDuration stored in raceRef
         let fastest = null;
-        if (finishers.length > 0) {
-          fastest = finishers.reduce((min, p) => p.finishTime < min.finishTime ? p : min, finishers[0]);
-          winnerBanner.textContent = "🏆 Winner: " + fastest.name;
+        if (raceStage === "finished") {
+          // winnerDuration is stored in raceRef when winner declared
+          onValue(raceRef, (snap) => {
+            const race = snap.val();
+            if (race && race.winnerId) {
+              fastest = sorted.find(p => p.id === race.winnerId);
+              winnerBanner.textContent = "🏆 Winner: " + race.winnerName +
+                " (" + (race.winnerDuration / 1000).toFixed(2) + "s)";
+            }
+          }, { onlyOnce: true });
         }
-
-        sorted.forEach(p=>{
-          const row=document.createElement('div');
-          row.className="playerRow";
-
-          const nameSpan=document.createElement('span');
-          nameSpan.className="playerName";
-          nameSpan.textContent=p.name;
-
-          const bar=document.createElement('div');
-          bar.className="bar";
-          const progress=Math.min(100,(targetTaps ? (p.tapCount/targetTaps)*100 : 0));
-          bar.style.width=progress+"%";
-
-          const countSpan=document.createElement('span');
-          countSpan.style.marginLeft="10px";
-          countSpan.textContent=p.tapCount;
-
-          if (p.tapCount >= targetTaps && p.finishTime) {
-            const timeSpan=document.createElement('span');
-            const ft = new Date(p.finishTime);
-            timeSpan.className="finishTime";
-            timeSpan.textContent = ft.toLocaleTimeString("en-GB",{hour12:false}) + "." + ft.getMilliseconds().toString().padStart(3,"0");
+    
+        sorted.forEach(p => {
+          const row = document.createElement('div');
+          row.className = "playerRow";
+    
+          const nameSpan = document.createElement('span');
+          nameSpan.className = "playerName";
+          nameSpan.textContent = p.name;
+    
+          const bar = document.createElement('div');
+          bar.className = "bar";
+          const progress = Math.min(100, (targetTaps ? (p.tapCount / targetTaps) * 100 : 0));
+          bar.style.width = progress + "%";
+    
+          const countSpan = document.createElement('span');
+          countSpan.style.marginLeft = "10px";
+          countSpan.textContent = p.tapCount;
+    
+          // show elapsed duration for finisher
+          if (raceStage === "finished" && fastest && p.id === fastest.id) {
+            const timeSpan = document.createElement('span');
+            timeSpan.className = "finishTime";
+            timeSpan.textContent = (race.winnerDuration / 1000).toFixed(2) + "s";
             bar.appendChild(timeSpan);
-          }
-
-          if (fastest && p.id === fastest.id) {
             bar.classList.add("winner");
           }
-
+    
           row.appendChild(nameSpan);
           row.appendChild(bar);
           row.appendChild(countSpan);
