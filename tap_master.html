@@ -92,8 +92,7 @@
 
   <!-- Finished -->
   <div id="finished" class="center hidden">
-    <h2>Race finished!</h2>
-    <div id="winnerBanner" style="font-size:32px; color:gold; margin:20px;"></div>
+    <div id="winnerBanner" style="font-size:72px; color:gold; margin:20px;"></div>
     <div id="chart"></div>
     <button id="restartBtn">Restart game</button>
   </div>
@@ -264,7 +263,9 @@
         div.innerHTML = "";
     
         const entries = Object.entries(players).map(([id, p]) => ({ id, ...p }));
-    
+        
+        winnerBanner.textContent = "🏆 Winner: " + race.winnerName + " (" + (winnerDuration / 1000).toFixed(2) + "s)";
+        
         // Sorting: winner first, then other finishers by time, then unfinished by tapCount
         const sorted = entries.sort((a, b) => {
           if (a.id === winnerId) return -1;
