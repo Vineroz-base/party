@@ -282,68 +282,70 @@
     function renderChart(players) {
       chartDivs.forEach(div => {
         div.innerHTML = "";
-        const entries = Object.entries(players);
-        const sorted = entries
-          .map(([id, p]) => ({ id, ...p }))
-          .sort((a, b) => b.tapCount - a.tapCount);
+        const entries = Object.entries(players).map(([id, p]) => ({ id, ...p }));
     
-        let fastest = null;
-        let winnerDuration = null;
+        onValue(raceRef, (snap) => {
+          const race = snap.val();
+          if (!race || !race.winnerId) return;
     
-        if (raceStage === "finished") {
-          onValue(raceRef, (snap) => {
-            const race = snap.val();
-            if (race && race.winnerId) {
-              fastest = sorted.find(p => p.id === race.winnerId);
-              winnerDuration = race.winnerDuration;
-              winnerBanner.textContent = "🏆 Winner: " + race.winnerName +
-                " (" + (winnerDuration / 1000).toFixed(2) + "s)";
+          const winnerId = race.winnerId;
+          const winnerDuration = race.winnerDuration;
+          winnerBanner.textContent = "🏆 Winner: " + race.winnerName +
+            " (" + (winnerDuration / 1000).toFixed(2) + "s)";
+    
+          // Sort: winner first, then others by finishDuration, then tapCount
+          const sorted = entries.sort((a, b) => {
+            if (a.id === winnerId) return -1;
+            if (b.id === winnerId) return 1;
+    
+            if (a.finishDuration != null && b.finishDuration != null) {
+              return a.finishDuration - b.finishDuration;
             }
-          }, { onlyOnce: true });
-        }
     
-        sorted.forEach(p => {
-          const row = document.createElement('div');
-          row.className = "playerRow";
+            return b.tapCount - a.tapCount;
+          });
     
-          const bar = document.createElement('div');
-          bar.className = "bar";
-          const progress = Math.min(100, (targetTaps ? (p.tapCount / targetTaps) * 100 : 0));
-          bar.style.width = progress + "%";
+          sorted.forEach(p => {
+            const row = document.createElement('div');
+            row.className = "playerRow";
     
-          if (raceStage === "finished" && p.finishDuration) {
-            // Show name + time centered inside bar
-            const centerSpan = document.createElement('span');
-            centerSpan.style.position = "absolute";
-            centerSpan.style.left = "50%";
-            centerSpan.style.top = "50%";
-            centerSpan.style.transform = "translate(-50%, -50%)";
-            centerSpan.style.fontWeight = "bold";
-            centerSpan.style.color = "#000";
+            const bar = document.createElement('div');
+            bar.className = "bar";
+            const progress = Math.min(100, (targetTaps ? (p.tapCount / targetTaps) * 100 : 0));
+            bar.style.width = progress + "%";
     
-            if (fastest && p.id === fastest.id && winnerDuration) {
-              centerSpan.textContent = p.name + " - " + (winnerDuration / 1000).toFixed(2) + "s";
-              bar.style.background = "gold"; // winner bar color
-              bar.style.boxShadow = "0 0 12px rgba(255,215,0,0.6)";
+            if (raceStage === "finished" && p.finishDuration != null) {
+              const centerSpan = document.createElement('span');
+              centerSpan.style.position = "absolute";
+              centerSpan.style.left = "50%";
+              centerSpan.style.top = "50%";
+              centerSpan.style.transform = "translate(-50%, -50%)";
+              centerSpan.style.fontWeight = "bold";
+              centerSpan.style.color = "#000";
+    
+              const durationText = (p.finishDuration / 1000).toFixed(2) + "s";
+              centerSpan.textContent = p.name + " - " + durationText;
+    
+              if (p.id === winnerId) {
+                bar.style.background = "gold";
+                bar.style.boxShadow = "0 0 12px rgba(255,215,0,0.6)";
+              }
+    
+              bar.appendChild(centerSpan);
             } else {
-              centerSpan.textContent = p.name + " - " + (p.finishDuration / 1000).toFixed(2) + "s";
+              const nameSpan = document.createElement('span');
+              nameSpan.className = "playerName";
+              nameSpan.textContent = p.name;
+              row.appendChild(nameSpan);
             }
     
-            bar.appendChild(centerSpan);
-          } else {
-            // Unfinished players: keep name on the left
-            const nameSpan = document.createElement('span');
-            nameSpan.className = "playerName";
-            nameSpan.textContent = p.name;
-            row.appendChild(nameSpan);
-          }
-    
-          row.appendChild(bar);
-          div.appendChild(row);
-        });
+            row.appendChild(bar);
+            div.appendChild(row);
+          });
+        }, { onlyOnce: true });
       });
     }
-
+    
     createBtn.onclick=()=>{
       set(raceRef,{stage:"waiting",targetTaps:parseInt(targetInput.value)||50})
         .then(()=>log("Race created, waiting stage"))
