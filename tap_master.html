@@ -188,38 +188,27 @@
       const count = Object.keys(latestPlayers).length;
       playersCount.textContent = "Joined: " + count;
     
-      if (raceStage === "active") {
-        if (!raceStartTime) {
-          raceStartTime = Date.now();
+      renderChart(latestPlayers);
+    
+      for (const [id, p] of Object.entries(latestPlayers)) {
+        if (p.tapCount >= targetTaps && !p.finishDuration && raceStartTime) {
+          const duration = Date.now() - raceStartTime;
+          update(ref(db, "tapRace/players/" + id), { finishDuration: duration });
         }
     
-        renderChart(latestPlayers);
-    
-        for (const [id, p] of Object.entries(latestPlayers)) {
-          if (p.tapCount >= targetTaps) {
-            // record finishDuration once per player
-            if (!p.finishDuration) {
-              const duration = Date.now() - raceStartTime;
-              update(ref(db, "tapRace/players/" + id), { finishDuration: duration });
-            }
-    
-            // declare winner only once
-            if (raceStage !== "finished") {
-              const duration = Date.now() - raceStartTime;
-              update(raceRef, {
-                stage: "finished",
-                winnerId: id,
-                winnerName: p.name,
-                winnerDuration: duration
-              });
-            }
-          }
+        if (raceStage === "active" && p.tapCount >= targetTaps) {
+          const duration = Date.now() - raceStartTime;
+          update(raceRef, {
+            stage: "finished",
+            winnerId: id,
+            winnerName: p.name,
+            winnerDuration: duration
+          });
+          break;
         }
-      } else if (raceStage === "finished") {
-        renderChart(latestPlayers);
       }
     });
-
+    
     onValue(raceRef,(snap)=>{
       const race = snap.val();
       if(!race){
