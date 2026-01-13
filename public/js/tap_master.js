@@ -193,11 +193,11 @@ function startBotEngines(targetTaps) {
   Object.keys(latestPlayers).forEach(id => {
     const p = latestPlayers[id];
     if (p.isBot) {
-      p.botBaseSpeed = 800 * (1 + Math.random() * 1.5);
+      p.botBaseSpeed = 600 * (1 + Math.random() * 1.5);
 
       const tapBot = () => {
         // Apply jitter relative to this bot’s personal base
-        const jitterFactor = 1 + (Math.random() - 0.5);
+        const jitterFactor = 1.2 + (Math.random() - 0.4);
         let delay = p.botBaseSpeed * jitterFactor;
 
         // Clamp minimum delay so bots don’t double‑tap instantly
@@ -259,7 +259,7 @@ function renderChart(players, winnerId = null, winnerDuration = null) {
       return b.tapCount - a.tapCount;
     });
 
-    const topPlayers = sorted.slice(0, 10);
+    const topPlayers = sorted.slice(0, 5);
 
     // Track which IDs are currently rendered
     const existingRows = Array.from(div.querySelectorAll(".playerRow"));
