@@ -47,3 +47,45 @@
   font-size: 96px;
   font-weight: bold;
 }
+
+/* Waiting container */
+#waiting {
+  text-align: center;
+}
+
+/* Content slot keeps consistent spacing */
+#waitingContent {
+  margin-top: 20px;
+  min-height: 120px; /* reserve space so heading doesn't jump */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Form and status share same layout */
+#waitingForm,
+#waitingStatus {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Button styling (from tap_master) */
+button {
+  margin: 20px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border: 1px solid #555;
+  border-radius: 6px;
+  background: #222;
+  color: #ccc;
+  transition: background 0.3s, color 0.3s;
+}
+
+  button:hover {
+    background: #333;
+    color: #fff;
+  }

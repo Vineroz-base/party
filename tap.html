@@ -14,23 +14,26 @@
 
   <!-- Waiting -->
   <div id="waiting" class="center hidden">
-    <h1 style="font-size:48px;">TAP RACE</h1>
+    <h1 style="font-size:48px;">Get ready...</h1>
 
-    <!-- Join form -->
-    <div id="waitingForm">
-      <label>
-        <span>Name:</span>
-        <input id="nameInput" maxlength="30" />
-      </label>
-      <button id="readyBtn" style="margin-top:20px; font-size:24px;">Ready</button>
-    </div>
-
-    <!-- Joined status -->
-    <div id="waitingStatus" class="hidden">
-      <div style="font-size:20px; margin-bottom:10px;">
-        Name: <strong id="waitingName"></strong>
+    <!-- Slot for either form or status -->
+    <div id="waitingContent">
+      <!-- Join form -->
+      <div id="waitingForm">
+        <label>
+          <span>Name:</span>
+          <input id="nameInput" maxlength="30" />
+        </label>
+        <button id="readyBtn">Ready</button>
       </div>
-      <div>Waiting for the race to start...</div>
+
+      <!-- Joined status -->
+      <div id="waitingStatus" class="hidden">
+        <div style="font-size:20px; margin-bottom:10px;">
+          Name: <strong id="waitingName"></strong>
+        </div>
+        <div>Waiting for the race to start...</div>
+      </div>
     </div>
   </div>
 
