@@ -1,0 +1,119 @@
+﻿body {
+    font-family: system-ui, sans-serif;
+    margin: 0;
+    background: #111;
+    color: #fff;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.center {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#playersCount {
+    margin-top: 20px;
+    font-size: 20px;
+}
+
+#chart {
+    width: 100%;
+    margin-top: 20px;
+}
+
+.playerRow {
+    display: flex;
+    align-items: center;
+    margin: 4px 0;
+}
+
+.playerName {
+    font-weight: bold;
+    margin-right: 10px;
+    width: clamp(80px, 20%, 150px);
+    text-align: right;
+}
+
+.playerIcon {
+    position: absolute;
+    top: 50%;
+    left: 5%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    line-height: 1;
+    z-index: 2;
+    transition: left 0.5s ease;
+}
+
+.flipped {
+    display: inline-block;
+    font-size: inherit;
+    transform: scaleX(-1);
+}
+
+.track {
+    position: relative;
+    flex: 1;
+    height: 32px;
+    border-bottom: 1px dashed #444;
+    margin-left: 10px;
+}
+
+.raceContainer {
+    position: relative;
+    width: 90%;
+}
+
+.finishLine {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    z-index: 1;
+    background-image: linear-gradient(45deg, #000 25%, transparent 25%), linear-gradient(-45deg, #000 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #000 75%), linear-gradient(-45deg, transparent 75%, #000 75%);
+    background-size: 4px 4px;
+    background-position: 0 0, 0 2px, 2px -2px, -2px 0px;
+    background-color: #fff;
+}
+
+button {
+    margin: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border: 1px solid #555;
+    border-radius: 6px;
+    background: #222;
+    color: #ccc;
+    transition: background 0.3s, color 0.3s;
+}
+
+    button:hover {
+        background: #333;
+        color: #fff;
+    }
+
+#startBtn {
+    margin-top: 40px;
+    background: #222;
+    color: #bbb;
+    font-size: 18px;
+    padding: 10px 24px;
+}
+
+#restartBtn {
+    background: #333;
+    color: #ccc;
+    font-size: 16px;
+    padding: 8px 16px;
+}
