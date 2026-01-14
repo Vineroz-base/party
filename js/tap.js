@@ -151,6 +151,7 @@ async function init() {
       tapCount = 0;
       finishTimeRecorded = false;
       winnerBanner.classList.add("hidden");
+      finishMessage.classList.add("hidden");
       setStage("idle");            // ensures renderWaiting(false)
       return;
     }
@@ -181,6 +182,7 @@ async function init() {
       if (!uid || !playerRef) {
         // Not joined—no tap button
         setStage("finished");
+        finishMessage.classList.remove("hidden");
         finishMessage.textContent = "Race is in progress.";
         finishSub.textContent = "Please wait for the next game to start.";
         return;
@@ -188,28 +190,25 @@ async function init() {
       tapBtn.style.visibility = "hidden"; // hide first
       setStage("active");
       tapBtn.disabled = false;
-      const remaining = targetTaps - tapCount;
-      tapBtn.textContent = remaining > 0 ? remaining : "Done!";
-      if (tapCount >= targetTaps) {
-        tapBtn.disabled = true;
-      } else {
-        moveButtonRandom();
-      }
+      updateTapButton();
       tapBtn.style.visibility = "visible"; // show only after update
     }
 
     if (stage === "finished") {
       setStage("finished");
       if (tapCount >= targetTaps) {
+        finishMessage.classList.remove("hidden");
         finishMessage.textContent = "🎉 You finished!";
         finishSub.textContent = "Waiting for results...";
       } else {
+        finishMessage.classList.remove("hidden");
         finishMessage.textContent = "The race is now finished.";
         finishSub.textContent = "Please wait for a new race to start.";
       }
       if (race.winnerName) {
         finishSub.textContent = "Winner: " + race.winnerName;
         if (playerName === race.winnerName) {
+          finishMessage.classList.add("hidden");
           winnerBanner.classList.remove("hidden");
           confetti({ particleCount: 200, spread: 80, origin: { y: 0.6 } });
         }
@@ -227,15 +226,19 @@ async function init() {
     } else {
       update(ref(db, "tapRace/players/" + uid), { tapCount });
     }
+    updateTapButton();
+  };
+
+  function updateTapButton() {
     const remaining = targetTaps - tapCount;
     if (tapCount >= targetTaps) {
-      tapBtn.textContent = "Done!";
       tapBtn.disabled = true;
     } else {
       tapBtn.textContent = remaining;
+      tapBtn.disabled = false;
       moveButtonRandom();
     }
-  };
+  }
 
   function moveButtonRandom() {
     const btnSize = 90;
