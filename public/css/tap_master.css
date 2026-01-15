@@ -172,10 +172,10 @@ button {
   margin: 20px auto;
 }
 
-/* Responsive adjustments */
+/* Width-based adjustments */
 @media (max-width: 768px) {
   #wait h1 {
-    font-size: 48px; /* tablet size */
+    font-size: 48px;
   }
 
   #qrCanvas {
@@ -186,11 +186,28 @@ button {
 
 @media (max-width: 480px) {
   #wait h1 {
-    font-size: 32px; /* phone size */
+    font-size: 32px;
   }
 
   #qrCanvas {
     width: 160px;
     height: 160px;
+  }
+}
+
+/* Orientation-specific overrides */
+@media (max-width: 812px) and (orientation: landscape) {
+  #wait h1 {
+    font-size: 24px;
+  }
+
+  #qrCanvas {
+    width: 140px;
+    height: 140px;
+  }
+
+  #startBtn {
+    font-size: 14px;
+    padding: 6px 12px;
   }
 }
