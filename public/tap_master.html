@@ -2,14 +2,14 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>TAP RACE Master</title>
+  <title>TAP Master</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="css/tap_master.css" />
 </head>
 <body>
   <!-- Idle -->
   <div id="idle" class="center">
-    <h1 style="font-size:72px;">TAP RACE</h1>
+    <h1 style="font-size:72px;">TAP</h1>
     <label>Target: <input id="targetInput" type="number" value="50" /></label>
     <div id="botControls" style="margin:20px 0; display:flex; flex-direction:column; align-items:flex-start; gap:12px;">
       <label>
@@ -37,16 +37,15 @@
     <h1 id="countNum" style="font-size:108px;"></h1>
   </div>
 
-  <!-- Race -->
-  <div id="race" class="center hidden">
-    <div id="chart"></div>
-  </div>
-
-  <!-- Finished -->
-  <div id="finished" class="center hidden">
-    <div id="winnerBanner" style="font-size:36px; color:gold; margin:20px;"></div>
-    <div id="chart"></div>
-    <button id="restartBtn">Restart game</button>
+  <!-- Race + Finished shared wrapper -->
+  <div id="raceFinished" class="center hidden">
+    <div id="bannerWrapper">
+      <div id="winnerBanner"></div>
+    </div>
+    <div id="chartArea">
+      <div id="chart"></div>
+    </div>
+    <button id="restartBtn" class="hidden">Restart</button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>

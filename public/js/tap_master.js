@@ -7,12 +7,19 @@ function show(el) { el.classList.remove('hidden'); }
 function hide(el) { el.classList.add('hidden'); }
 
 function setStage(stage) {
-  [idleEl, waitEl, countdownEl, raceEl, finishedEl].forEach(el => hide(el));
+[idleEl, waitEl, countdownEl, raceFinishedEl].forEach(el => hide(el));
   if (stage === "idle") show(idleEl);
   if (stage === "waiting") show(waitEl);
   if (stage === "countdown") show(countdownEl);
-  if (stage === "active") show(raceEl);
-  if (stage === "finished") show(finishedEl);
+  if (stage === "active") {
+    show(raceFinishedEl);
+    winnerBanner.classList.remove("visible");
+    restartBtn.classList.add("hidden");
+  }
+  if (stage === "finished") {
+    show(raceFinishedEl);
+    restartBtn.classList.remove("hidden");
+   }
 }
 
 const firebaseConfig = {
@@ -40,8 +47,7 @@ const playersRef = ref(db, "tapRace/players");
 const idleEl = document.getElementById('idle');
 const waitEl = document.getElementById('wait');
 const countdownEl = document.getElementById('countdown');
-const raceEl = document.getElementById('race');
-const finishedEl = document.getElementById('finished');
+const raceFinishedEl = document.getElementById('raceFinished');
 const targetInput = document.getElementById('targetInput');
 const createBtn = document.getElementById('createBtn');
 const startBtn = document.getElementById('startBtn');
@@ -130,14 +136,14 @@ onValue(raceRef, (snap) => {
   if (raceStage === "idle") {
     setStage("idle");
     clearCharts();
-    winnerBanner.textContent = "";
+    winnerBanner.classList.remove("visible");
     confettiFired = false;
   }
   else if (raceStage === "waiting") {
     setStage("waiting");
     qr.value = `${window.location.origin}/tap.html`;
     clearCharts();
-    winnerBanner.textContent = "";
+    winnerBanner.classList.remove("visible");
     confettiFired = false;
 
     raceStartTime = null;
@@ -177,6 +183,7 @@ onValue(raceRef, (snap) => {
     if (race.winnerId && race.winnerDuration != null) {
       winnerBanner.textContent = "🏆 Winner: " + race.winnerName +
         " (" + (race.winnerDuration / 1000).toFixed(2) + "s)";
+      winnerBanner.classList.add("visible");
     }
 
     if (!confettiFired) {
@@ -231,6 +238,7 @@ function clearCharts() {
 
 function renderChart(players, winnerId = null, winnerDuration = null) {
   chartDivs.forEach(div => {
+    // Ensure a raceContainer exists around this chart div
     let raceContainer = div.closest(".raceContainer");
     if (!raceContainer) {
       raceContainer = document.createElement("div");
@@ -239,6 +247,7 @@ function renderChart(players, winnerId = null, winnerDuration = null) {
       raceContainer.appendChild(div);
     }
 
+    // Ensure a finishLine marker exists
     let finishLine = raceContainer.querySelector(".finishLine");
     if (!finishLine) {
       finishLine = document.createElement("span");
@@ -262,21 +271,19 @@ function renderChart(players, winnerId = null, winnerDuration = null) {
     const topPlayers = sorted.slice(0, 5);
 
     // Track which IDs are currently rendered
-    const existingRows = Array.from(div.querySelectorAll(".playerRow"));
-    const existingIds = existingRows.map(r => r.dataset.id);
+    const existingRows = Array.from(raceContainer.querySelectorAll(".playerRow"));
 
     // Remove rows that are no longer in topPlayers
     existingRows.forEach(r => {
       if (!topPlayers.find(p => p.id === r.dataset.id)) {
-        div.removeChild(r);
+        raceContainer.removeChild(r);
       }
     });
 
     // Update or create rows for topPlayers
-    topPlayers.forEach(p => {
-      let row = div.querySelector(`.playerRow[data-id="${p.id}"]`);
+    topPlayers.forEach((p, rank) => {
+      let row = raceContainer.querySelector(`.playerRow[data-id="${p.id}"]`);
       if (!row) {
-        // Create once
         row = document.createElement("div");
         row.className = "playerRow";
         row.dataset.id = p.id;
@@ -288,29 +295,26 @@ function renderChart(players, winnerId = null, winnerDuration = null) {
         const track = document.createElement("div");
         track.className = "track";
 
+        const finishTimeSpan = document.createElement("span");
+        finishTimeSpan.className = "finishTime";
+        track.appendChild(finishTimeSpan);
+
         const iconWrapper = document.createElement("span");
         iconWrapper.className = "playerIcon";
 
         const inner = document.createElement("span");
         inner.className = "flipped";
-        if (p.isBot) {
-          inner.textContent = p.animal || "🐒"; // bots keep animal list
-        } else {
-          inner.textContent = "🏃"; // humans always runner
-        }
+        inner.textContent = p.isBot ? (p.animal || "🐒") : "🏃";
 
         iconWrapper.appendChild(inner);
         track.appendChild(iconWrapper);
         row.appendChild(track);
 
-        div.appendChild(row);
+        raceContainer.appendChild(row);
       }
 
       // Update name label
       const nameSpan = row.querySelector(".playerName");
-
-      // Find this player's rank in the current topPlayers list
-      const rank = topPlayers.findIndex(tp => tp.id === p.id);
 
       let medal = "";
       if (rank === 0) medal = "🥇";
@@ -319,9 +323,8 @@ function renderChart(players, winnerId = null, winnerDuration = null) {
 
       if (raceStage === "finished") {
         if (p.finishDuration != null) {
-          const durationText = (p.finishDuration / 1000).toFixed(2) + "s";
-          nameSpan.textContent = `${medal} ${p.name} - ${durationText}`;
-          nameSpan.style.color = ""; // normal
+          nameSpan.textContent = `${medal} ${p.name}`;
+          nameSpan.style.color = "";
         } else {
           nameSpan.textContent = `${medal} ${p.name}`;
           nameSpan.style.color = "#888"; // grey for unfinished
@@ -331,7 +334,14 @@ function renderChart(players, winnerId = null, winnerDuration = null) {
         nameSpan.style.color = "";
       }
 
-      // Update icon position (this will animate via CSS transition)
+      // Update finish time (left-aligned on track)
+      const finishTimeSpan = row.querySelector(".finishTime");
+      finishTimeSpan.textContent =
+        raceStage === "finished" && p.finishDuration != null
+          ? (p.finishDuration / 1000).toFixed(2) + "s"
+          : "";
+
+      // Update icon position (animated via CSS transition)
       const progress = Math.min(
         99,
         targetTaps ? (p.tapCount / targetTaps) * 100 : 0
