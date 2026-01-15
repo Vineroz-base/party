@@ -9,18 +9,40 @@
 <body>
   <!-- Idle -->
   <div id="idle" class="center">
-    <h1 style="font-size:72px;">TAP</h1>
+    <h1 style="font-size: 72px;">TAP</h1>
     <label>Target: <input id="targetInput" type="number" value="50" /></label>
-    <div id="botControls" style="margin:20px 0; display:flex; flex-direction:column; align-items:flex-start; gap:12px;">
-      <label>
-        <input type="checkbox" id="enableBots" />
-        Enable bots
-      </label>
-      <label>
-        Number of bots:
-        <input id="botCount" type="number" min="1" max="999" value="3" disabled />
-      </label>
+
+    <!-- Advanced Options -->
+    <div id="advancedOptions">
+      <button id="toggleAdvanced">Advanced options ▸</button>
+      <div id="advancedContent" class="collapsed">
+        <fieldset class="groupBox">
+          <legend>Bot Options</legend>
+          <div class="botGrid">
+            <label for="enableBots">Enable bots:</label>
+            <input type="checkbox" id="enableBots" />
+
+            <label for="botCount">Number of bots:</label>
+            <input type="number" id="botCount" min="1" max="999" value="3" disabled />
+
+            <label>Difficulty:</label>
+            <div class="toggle">
+              <input type="radio" name="difficulty" id="casual" value="casual" checked />
+              <label for="casual">Casual</label>
+              <input type="radio" name="difficulty" id="challenging" value="challenging" />
+              <label for="challenging">Challenging</label>
+            </div>
+
+            <label for="botStyle">Style:</label>
+            <select id="botStyle">
+              <option value="animal">Animal</option>
+              <option value="vehicle">Vehicle</option>
+            </select>
+          </div>
+        </fieldset>
+      </div>
     </div>
+
     <button id="createBtn">Create race</button>
   </div>
 
@@ -29,7 +51,7 @@
     <h1>Are you ready?</h1>
     <canvas id="qrCanvas" width="300" height="300"></canvas>
     <div id="playersCount">Joined: 0</div>
-    <button id="startBtn">Start</button>
+    <button id="startBtn" disabled>Start</button>
   </div>
 
   <!-- Countdown -->

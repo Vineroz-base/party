@@ -61,25 +61,43 @@ const countNum = document.getElementById('countNum');
 const qr = new QRious({ element: qrCanvas, size: 300 });
 
 const animalPool = [
-  "🐒", "🦍", "🐕", "🐩", "🐈", "🐅", "🐆", "🐎", "🦓", "🦌", "🦬", "🐂", "🐃", "🐄", "🐖", "🐏",
-  "🐑", "🐐", "🐪", "🐫", "🦙", "🦒", "🐘", "🦣", "🦏", "🦛", "🐁", "🐀", "🐇", "🐿️", "🦫",
-  "🦔", "🦥", "🦦", "🦨", "🦘", "🦡", "🦃", "🐓", "🐤", "🐦", "🕊️", "🦅", "🦆", "🦢", "🦤", "🦩",
-  "🦚", "🦜", "🐢", "🐉", "🦕", "🦖", "🐳", "🐋", "🦭", "🐟", "🐠", "🐡", "🐌", "🐛", "🐜", "🐝"
+  "🐒", "🦍", "🐕", "🐩", "🐈", "🐅", "🐆", "🐎", "🦓", "🦌",
+  "🦬", "🐂", "🐃", "🐄", "🐖", "🐏", "🐑", "🐐", "🐪", "🐫",
+  "🦙", "🦒", "🐘", "🦣", "🦏", "🦛", "🐁", "🐀", "🐇", "🐿️",
+  "🦔", "🦨", "🦘", "🦡", "🦃", "🐓", "🐤", "🐦", "🦅", "🦆",
+  "🦢", "🦤", "🦩", "🦚", "🦜", "🐢", "🐉", "🦕", "🦖", "🐌",
+  "🐛", "🐜"
+];
+const vehiclePool = [
+  "🚂", "🚃", "🚌", "🚎", "🚐", "🚑", "🚒", "🚓", "🚕", "🚗",
+  "🚙", "🛻", "🚚", "🚛", "🚜", "🏎️", "🏍️", "🛵", "🦽", "🦼",
+  "🛺", "🚲", "🛴", "🚁"
 ];
 
-// Grab the elements
 const enableBots = document.getElementById("enableBots");
 const botCount = document.getElementById("botCount");
+const toggleBtn = document.getElementById("toggleAdvanced");
+const advancedContent = document.getElementById("advancedContent");
+
+// New references
+const difficultyRadios = document.querySelectorAll('input[name="difficulty"]');
+const botStyle = document.getElementById("botStyle");
 
 // Initial state: disabled
 botCount.disabled = true;
+difficultyRadios.forEach(r => r.disabled = true);
+botStyle.disabled = true;
 
 // Toggle logic
 enableBots.addEventListener("change", () => {
   if (enableBots.checked) {
     botCount.disabled = false;
+    difficultyRadios.forEach(r => r.disabled = false);
+    botStyle.disabled = false;
   } else {
     botCount.disabled = true;
+    difficultyRadios.forEach(r => r.disabled = true);
+    botStyle.disabled = true;
   }
 });
 
@@ -93,6 +111,7 @@ onValue(playersRef, (snap) => {
   latestPlayers = snap.val() || {};
   const count = Object.keys(latestPlayers).length;
   playersCount.textContent = "Joined: " + count;
+  startBtn.disabled = count < 2;
 
   renderChart(latestPlayers);
 
@@ -106,7 +125,7 @@ onValue(playersRef, (snap) => {
       const duration = Date.now() - raceStartTime;
       let winnerName;
       if (p.isBot) {
-        winnerName = p.animal;
+        winnerName = p.emoji;
       } else {
         winnerName = p.name;
       }
@@ -193,14 +212,23 @@ onValue(raceRef, (snap) => {
   }
 });
 
+function getSelectedDifficulty() {
+  const selected = document.querySelector('input[name="difficulty"]:checked');
+  return selected ? selected.value : "casual"; // default fallback
+}
+
 // Keep track of active bot intervals
 let botIntervals = {};
 
 function startBotEngines(targetTaps) {
+  const difficulty = getSelectedDifficulty();
+  const baseSpeed = (difficulty === "challenging") ? 400 : 600;
+
   Object.keys(latestPlayers).forEach(id => {
     const p = latestPlayers[id];
     if (p.isBot) {
-      p.botBaseSpeed = 600 * (1 + Math.random() * 1.5);
+      // Base speed depends on difficulty
+      p.botBaseSpeed = baseSpeed * (1 + Math.random() * 1.5);
 
       const tapBot = () => {
         // Apply jitter relative to this bot’s personal base
@@ -304,7 +332,7 @@ function renderChart(players, winnerId = null, winnerDuration = null) {
 
         const inner = document.createElement("span");
         inner.className = "flipped";
-        inner.textContent = p.isBot ? (p.animal || "🐒") : "🏃";
+        inner.textContent = p.isBot ? (p.emoji || "🏇") : "🚴";
 
         iconWrapper.appendChild(inner);
         track.appendChild(iconWrapper);
@@ -368,19 +396,27 @@ createBtn.onclick = () => {
   // If bots are enabled, add them now
   if (enableBots.checked) {
     const count = Math.min(parseInt(botCount.value, 10), 999);
+    const style = botStyle.value; // "animal" or "vehicle"
+    const pool = (style === "vehicle") ? vehiclePool : animalPool;
+
     for (let i = 0; i < count; i++) {
       const botId = "bot_" + i;
-      const botNumber = String(Math.floor(Math.random() * 999) + 1).padStart(3, "0");
-      const randomAnimal = animalPool[Math.floor(Math.random() * animalPool.length)];
+      const botNumber = String(i + 1).padStart(3, "0");
+      const randomEmoji = pool[Math.floor(Math.random() * pool.length)];
 
       set(ref(db, "tapRace/players/" + botId), {
         name: "Bot " + botNumber,
         tapCount: 0,
-        animal: randomAnimal,
+        emoji: randomEmoji,   // renamed to generic "emoji"
         isBot: true
       });
     }
   }
+};
+
+toggleBtn.onclick = () => {
+  const expanded = advancedContent.classList.toggle("expanded");
+  toggleBtn.textContent = expanded ? "Advanced options ▾" : "Advanced options ▸";
 };
 
 startBtn.onclick = () => {
