@@ -159,3 +159,38 @@ button {
   #winnerBanner.visible {
     visibility: visible;
   }
+
+#wait h1 {
+  font-size: 72px; /* desktop default */
+  margin: 20px 0;
+}
+
+#qrCanvas {
+  width: 300px;
+  height: 300px;
+  display: block;
+  margin: 20px auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  #wait h1 {
+    font-size: 48px; /* tablet size */
+  }
+
+  #qrCanvas {
+    width: 220px;
+    height: 220px;
+  }
+}
+
+@media (max-width: 480px) {
+  #wait h1 {
+    font-size: 32px; /* phone size */
+  }
+
+  #qrCanvas {
+    width: 160px;
+    height: 160px;
+  }
+}
