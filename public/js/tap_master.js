@@ -1,4 +1,4 @@
-﻿import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getDatabase, ref, set, update, remove, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
@@ -160,7 +160,7 @@ onValue(raceRef, (snap) => {
   }
   else if (raceStage === "waiting") {
     setStage("waiting");
-    qr.value = `${window.location.origin}/tap.html`;
+    qr.value = `${window.location.origin}/party/tap.html`;
     clearCharts();
     winnerBanner.classList.remove("visible");
     confettiFired = false;
