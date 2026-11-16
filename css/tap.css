@@ -14,6 +14,32 @@
   }
 }
 
+@keyframes countdownWiggle {
+  0%, 100% {
+    transform: translateX(0) rotate(0);
+  }
+
+  25% {
+    transform: translateX(-8px) rotate(-8deg);
+  }
+
+  75% {
+    transform: translateX(8px) rotate(8deg);
+  }
+}
+
+@keyframes countdownRipple {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.8);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+
 body {
   font-family: system-ui, sans-serif;
   margin: 0;
@@ -79,6 +105,57 @@ body {
 #countdownNum {
   font-size: 96px;
   font-weight: bold;
+  line-height: 1;
+  margin: 12px 0 20px;
+}
+
+.countdown-instruction {
+  font-size: clamp(18px, 4vw, 24px);
+  font-weight: 600;
+  margin: 0 20px;
+  text-align: center;
+}
+
+.countdown-preview {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.countdown-preview-button {
+  align-items: center;
+  animation: countdownWiggle 0.8s ease-in-out infinite;
+  background: linear-gradient(145deg, #00e0e0, #00ffff);
+  border: 2px solid #0aa;
+  border-radius: 50%;
+  box-shadow: 0 0 12px #0ff, 0 0 20px #f0f;
+  color: #111;
+  display: flex;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  height: 76px;
+  justify-content: center;
+  position: relative;
+  width: 76px;
+}
+
+.countdown-preview-button::after {
+  animation: countdownRipple 1.2s ease-out infinite;
+  border: 2px solid #0ff;
+  border-radius: 50%;
+  content: "";
+  inset: -2px;
+  pointer-events: none;
+  position: absolute;
+}
+
+.countdown-preview-label {
+  color: #aaa;
+  font-size: 12px;
+  letter-spacing: 0.12em;
 }
 
 /* Waiting container */
